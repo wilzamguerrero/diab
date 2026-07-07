@@ -1,7 +1,7 @@
 // NotionConnect — Notion OAuth connection gate.
 //
 // Requirements 1.1, 1.4: Present a connection action before recording is allowed.
-// Spanish UI with motion animations.
+// i18n via useI18n hook, with motion animations.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -11,6 +11,7 @@ import {
   NOTION_OAUTH_CLIENT_ID,
 } from '../services/notionService';
 import { setConnection, useAppStore } from '../state/appStore';
+import { useI18n } from '../services/i18n';
 
 /** Shape of the OAuth exchange result this component relies on. */
 export interface OAuthExchangeResult {
@@ -72,6 +73,7 @@ export default function NotionConnect({
   oauthCode,
 }: NotionConnectProps) {
   const { connected } = useAppStore();
+  const { t } = useI18n();
   const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState<string | null>(null);
   const exchangeStarted = useRef(false);
@@ -86,18 +88,18 @@ export default function NotionConnect({
       try {
         const result = await exchangeCode(authCode, resolvedRedirectUri);
         if (result.error || !result.access_token) {
-          setError(result.error || 'La conexión con Notion falló. Intenta de nuevo.');
+          setError(result.error || t('notion.error'));
           setPhase('error');
           return;
         }
         setConnection(result.access_token);
         setPhase('idle');
       } catch {
-        setError('La conexión con Notion falló. Intenta de nuevo.');
+        setError(t('notion.error'));
         setPhase('error');
       }
     },
-    [exchangeCode, resolvedRedirectUri],
+    [exchangeCode, resolvedRedirectUri, t],
   );
 
   useEffect(() => {
@@ -115,7 +117,7 @@ export default function NotionConnect({
       return;
     }
     if (!clientId) {
-      setError('El ID de cliente de Notion OAuth no está configurado.');
+      setError(t('notion.clientError'));
       setPhase('error');
       return;
     }
@@ -127,7 +129,7 @@ export default function NotionConnect({
     if (typeof window !== 'undefined' && window.location) {
       window.location.assign(url);
     }
-  }, [onConnect, clientId, resolvedRedirectUri]);
+  }, [onConnect, clientId, resolvedRedirectUri, t]);
 
   if (connected) {
     return <>{children}</>;
@@ -141,11 +143,8 @@ export default function NotionConnect({
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 200, damping: 20 }}
     >
-      <h2>Conectar Notion</h2>
-      <p>
-        Conecta tu espacio de trabajo de Notion para registrar y almacenar tus
-        lecturas. La grabación de datos no está disponible hasta que te conectes.
-      </p>
+      <h2>{t('notion.title')}</h2>
+      <p>{t('notion.description')}</p>
 
       {phase === 'error' && error && (
         <motion.p
@@ -165,7 +164,7 @@ export default function NotionConnect({
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
-        {phase === 'exchanging' ? 'Conectando…' : 'Conectar Notion'}
+        {phase === 'exchanging' ? t('notion.connecting') : t('notion.button')}
       </motion.button>
     </motion.section>
   );

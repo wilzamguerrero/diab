@@ -1,5 +1,5 @@
 // HistoryView component — browse recorded readings by date range.
-// Spanish UI with motion animations.
+// i18n via useI18n hook, with motion animations.
 // Requirements 6.1–6.5
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -9,6 +9,7 @@ import { rangeFor } from '../domain/history';
 import { getReadings } from '../services/readingsRepository';
 import { NotionService } from '../services/notionService';
 import { useAppStore } from '../state/appStore';
+import { useI18n } from '../services/i18n';
 
 export type FetchReadings = (range: DateRange) => Promise<Reading[]>;
 
@@ -19,11 +20,11 @@ export interface HistoryViewProps {
   initialRange?: RangeKind;
 }
 
-const RANGE_OPTIONS: { kind: RangeKind; label: string }[] = [
-  { kind: 'day', label: 'Día' },
-  { kind: 'week', label: 'Semana' },
-  { kind: 'month', label: 'Mes' },
-  { kind: 'year', label: 'Año' },
+const RANGE_KEYS: { kind: RangeKind; key: string }[] = [
+  { kind: 'day', key: 'history.day' },
+  { kind: 'week', key: 'history.week' },
+  { kind: 'month', key: 'history.month' },
+  { kind: 'year', key: 'history.year' },
 ];
 
 type LoadStatus = 'loading' | 'loaded' | 'error';
@@ -43,6 +44,7 @@ export function HistoryView({
   initialRange = 'day',
 }: HistoryViewProps) {
   const { accessToken, rootPageId: storeRootPageId } = useAppStore();
+  const { t } = useI18n();
   const effectiveRootPageId = rootPageId ?? storeRootPageId ?? '';
   const [range, setRange] = useState<RangeKind>(initialRange);
   const [status, setStatus] = useState<LoadStatus>('loading');
@@ -91,14 +93,14 @@ export function HistoryView({
 
   return (
     <motion.section
-      aria-label="Historial de lecturas"
+      aria-label={t('history.heading')}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 200, damping: 22 }}
     >
-      <h2>Historial de lecturas</h2>
-      <div role="group" aria-label="Seleccionar rango de tiempo">
-        {RANGE_OPTIONS.map(({ kind, label }) => (
+      <h2>{t('history.heading')}</h2>
+      <div role="group" aria-label={t('history.rangeLabel')}>
+        {RANGE_KEYS.map(({ kind, key }) => (
           <motion.button
             key={kind}
             type="button"
@@ -107,23 +109,23 @@ export function HistoryView({
             onClick={() => setRange(kind)}
             whileTap={{ scale: 0.92 }}
           >
-            {label}
+            {t(key)}
           </motion.button>
         ))}
       </div>
 
       {status === 'loading' && (
         <p role="status" aria-live="polite">
-          Cargando...
+          {t('history.loading')}
         </p>
       )}
 
       {status === 'error' && (
-        <p role="alert">No se pudieron cargar las lecturas: {error}</p>
+        <p role="alert">{t('history.error')}: {error}</p>
       )}
 
       {status === 'loaded' && readings.length === 0 && (
-        <p>No se encontraron lecturas para el rango seleccionado.</p>
+        <p>{t('history.empty')}</p>
       )}
 
       {status === 'loaded' && readings.length > 0 && (
@@ -140,6 +142,7 @@ export function HistoryView({
 /** Clickable reading item that expands to show details and notes. */
 function ReadingItem({ reading, index }: { reading: Reading; index: number }) {
   const [expanded, setExpanded] = useState(false);
+  const { t } = useI18n();
 
   return (
     <motion.li
@@ -150,7 +153,7 @@ function ReadingItem({ reading, index }: { reading: Reading; index: number }) {
       style={{ cursor: 'pointer' }}
     >
       <span>{reading.glucose} mg/dL</span>
-      <span>{reading.mealTag === 'pre' ? 'Pre-comida' : 'Post-comida'}</span>
+      <span>{reading.mealTag === 'pre' ? t('record.pre') : t('record.post')}</span>
       <time dateTime={reading.timestamp}>
         {formatTimestamp(reading.timestamp)}
       </time>
@@ -165,16 +168,16 @@ function ReadingItem({ reading, index }: { reading: Reading; index: number }) {
             style={{ overflow: 'hidden', width: '100%' }}
           >
             <div style={{ paddingTop: '10px', borderTop: '1px solid rgba(26,31,54,0.1)', marginTop: '8px', fontSize: '0.85rem' }}>
-              <p style={{ margin: '4px 0' }}><strong>Glucosa:</strong> {reading.glucose} mg/dL</p>
-              <p style={{ margin: '4px 0' }}><strong>Etiqueta:</strong> {reading.mealTag === 'pre' ? 'Pre-comida' : 'Post-comida'}</p>
-              <p style={{ margin: '4px 0' }}><strong>Fecha:</strong> {formatTimestamp(reading.timestamp)}</p>
+              <p style={{ margin: '4px 0' }}><strong>{t('history.glucose')}:</strong> {reading.glucose} mg/dL</p>
+              <p style={{ margin: '4px 0' }}><strong>{t('history.mealTag')}:</strong> {reading.mealTag === 'pre' ? t('record.pre') : t('record.post')}</p>
+              <p style={{ margin: '4px 0' }}><strong>{t('history.date')}:</strong> {formatTimestamp(reading.timestamp)}</p>
               {reading.notes && (
                 <p style={{ margin: '4px 0', fontStyle: 'italic', color: 'rgba(26,31,54,0.7)' }}>
-                  <strong>Observaciones:</strong> {reading.notes}
+                  <strong>{t('history.notes')}:</strong> {reading.notes}
                 </p>
               )}
               {!reading.notes && (
-                <p style={{ margin: '4px 0', color: 'rgba(26,31,54,0.4)' }}>Sin observaciones</p>
+                <p style={{ margin: '4px 0', color: 'rgba(26,31,54,0.4)' }}>{t('history.noNotes')}</p>
               )}
             </div>
           </motion.div>

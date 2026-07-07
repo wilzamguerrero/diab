@@ -1,10 +1,11 @@
 // PageSelector — choose the Notion page used as the data root.
-// Spanish UI with motion animations.
+// i18n via useI18n hook, with motion animations.
 
 import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { NotionService } from '../services/notionService';
 import { getSnapshot, setRootPage, useAppStore } from '../state/appStore';
+import { useI18n } from '../services/i18n';
 
 interface NotionPage {
   id: string;
@@ -27,6 +28,7 @@ const defaultSearchPages: SearchPagesFn = () => {
 
 export default function PageSelector({ searchPages = defaultSearchPages }: PageSelectorProps) {
   const { accessToken } = useAppStore();
+  const { t } = useI18n();
   const [pages, setPages] = useState<NotionPage[]>([]);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
@@ -61,43 +63,40 @@ export default function PageSelector({ searchPages = defaultSearchPages }: PageS
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 200, damping: 20 }}
     >
-      <h2>Selecciona una página</h2>
-      <p>Elige la página de Notion donde se almacenarán tu perfil y lecturas.</p>
+      <h2>{t('page.title')}</h2>
+      <p>{t('page.description')}</p>
 
       <label className="page-selector__search">
-        <span>Buscar páginas</span>
+        <span>{t('page.searchLabel')}</span>
         <input
           type="search"
           value={query}
-          placeholder="Buscar páginas por título"
+          placeholder={t('page.searchPlaceholder')}
           onChange={(e) => setQuery(e.target.value)}
         />
       </label>
 
       {status === 'loading' && (
         <p role="status" aria-live="polite">
-          Buscando páginas…
+          {t('page.loading')}
         </p>
       )}
 
       {status === 'error' && (
         <div role="alert">
-          <p>No se pudieron cargar tus páginas de Notion: {error}</p>
+          <p>{t('page.error')}: {error}</p>
           <motion.button
             type="button"
             onClick={() => void load()}
             whileTap={{ scale: 0.95 }}
           >
-            Reintentar
+            {t('page.retry')}
           </motion.button>
         </div>
       )}
 
       {status === 'loaded' && filtered.length === 0 && (
-        <p>
-          No se encontraron páginas. Asegúrate de haber compartido al menos una
-          página con la integración durante la autorización.
-        </p>
+        <p>{t('page.empty')}</p>
       )}
 
       {status === 'loaded' && filtered.length > 0 && (
@@ -116,7 +115,7 @@ export default function PageSelector({ searchPages = defaultSearchPages }: PageS
                 whileTap={{ scale: 0.97 }}
               >
                 {page.icon ? <span aria-hidden="true">{page.icon} </span> : null}
-                {page.title || 'Sin título'}
+                {page.title || t('page.untitled')}
               </motion.button>
             </motion.li>
           ))}

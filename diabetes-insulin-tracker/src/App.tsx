@@ -4,7 +4,7 @@
 //   - Gate all recording/profile/history/metrics UI behind <NotionConnect> so
 //     data recording is unavailable until a Notion workspace is connected
 //   - Tab navigation with framer-motion animations
-//   - Spanish UI translations
+//   - i18n via useI18n hook
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -22,23 +22,25 @@ import { getReadings } from './services/readingsRepository';
 import { rangeFor } from './domain/history';
 import type { RangeKind, Reading } from './types';
 import { useAppStore } from './state/appStore';
+import { useI18n } from './services/i18n';
 
 /** The selectable screens within the connected application. */
 type Tab = 'calculator' | 'record' | 'history' | 'metrics' | 'profile';
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'calculator', label: 'Calculadora' },
-  { id: 'record', label: 'Registrar' },
-  { id: 'history', label: 'Historial' },
-  { id: 'metrics', label: 'Métricas' },
-  { id: 'profile', label: 'Perfil' },
-];
+const TAB_IDS: Tab[] = ['calculator', 'record', 'history', 'metrics', 'profile'];
+const TAB_KEYS: Record<Tab, string> = {
+  calculator: 'tab.calculator',
+  record: 'tab.record',
+  history: 'tab.history',
+  metrics: 'tab.metrics',
+  profile: 'tab.profile',
+};
 
-const METRICS_RANGE_OPTIONS: { kind: RangeKind; label: string }[] = [
-  { kind: 'day', label: 'Día' },
-  { kind: 'week', label: 'Semana' },
-  { kind: 'month', label: 'Mes' },
-  { kind: 'year', label: 'Año' },
+const RANGE_KEYS: { kind: RangeKind; key: string }[] = [
+  { kind: 'day', key: 'history.day' },
+  { kind: 'week', key: 'history.week' },
+  { kind: 'month', key: 'history.month' },
+  { kind: 'year', key: 'history.year' },
 ];
 
 const tabVariants = {
@@ -52,6 +54,7 @@ const tabVariants = {
  */
 function ConnectedApp() {
   const { accessToken, rootPageId } = useAppStore();
+  const { t } = useI18n();
   const [tab, setTab] = useState<Tab>('calculator');
 
   useEffect(() => {
@@ -73,8 +76,8 @@ function ConnectedApp() {
 
   return (
     <div className="app-shell">
-      <nav role="tablist" aria-label="Secciones" className="app-shell__tabs">
-        {TABS.map(({ id, label }) => (
+      <nav role="tablist" aria-label={t('app.sections')} className="app-shell__tabs">
+        {TAB_IDS.map((id) => (
           <motion.button
             key={id}
             type="button"
@@ -83,7 +86,7 @@ function ConnectedApp() {
             onClick={() => setTab(id)}
             whileTap={{ scale: 0.92 }}
           >
-            {label}
+            {t(TAB_KEYS[id])}
           </motion.button>
         ))}
       </nav>
@@ -117,6 +120,7 @@ type MetricsTab = 'resumen' | 'grafica';
 
 function MetricsScreen() {
   const { accessToken, rootPageId } = useAppStore();
+  const { t } = useI18n();
   const [rangeKind, setRangeKind] = useState<RangeKind>('week');
   const [readings, setReadings] = useState<Reading[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,8 +153,8 @@ function MetricsScreen() {
 
   return (
     <section aria-label="Metrics screen">
-      <div role="group" aria-label="Seleccionar rango de métricas">
-        {METRICS_RANGE_OPTIONS.map(({ kind, label }) => (
+      <div role="group" aria-label={t('metrics.rangeLabel')}>
+        {RANGE_KEYS.map(({ kind, key }) => (
           <motion.button
             key={kind}
             type="button"
@@ -159,19 +163,19 @@ function MetricsScreen() {
             onClick={() => setRangeKind(kind)}
             whileTap={{ scale: 0.92 }}
           >
-            {label}
+            {t(key)}
           </motion.button>
         ))}
       </div>
 
       {loading ? (
         <p role="status" aria-live="polite">
-          Cargando...
+          {t('history.loading')}
         </p>
       ) : (
         <>
           {readings.length > 0 && (
-            <div role="group" aria-label="Vista de métricas" className="metrics-view-toggle">
+            <div role="group" aria-label={t('metrics.viewLabel')} className="metrics-view-toggle">
               <motion.button
                 type="button"
                 aria-pressed={metricsTab === 'resumen'}
@@ -179,7 +183,7 @@ function MetricsScreen() {
                 onClick={() => setMetricsTab('resumen')}
                 whileTap={{ scale: 0.92 }}
               >
-                Resumen
+                {t('metrics.summary')}
               </motion.button>
               <motion.button
                 type="button"
@@ -188,7 +192,7 @@ function MetricsScreen() {
                 onClick={() => setMetricsTab('grafica')}
                 whileTap={{ scale: 0.92 }}
               >
-                Gráfica
+                {t('metrics.chart')}
               </motion.button>
             </div>
           )}
@@ -232,6 +236,7 @@ function RootGate() {
 }
 
 export default function App() {
+  const { t } = useI18n();
   return (
     <main>
       <motion.h1
@@ -239,7 +244,7 @@ export default function App() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 200, damping: 20 }}
       >
-        Diabetes Insulin Tracker
+        {t('app.title')}
       </motion.h1>
       <NotionConnect>
         <RootGate />

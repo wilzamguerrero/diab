@@ -1,5 +1,5 @@
 // QuickRecord — rapid blood glucose reading entry.
-// Spanish UI with motion animations.
+// i18n via useI18n hook, with motion animations.
 // Requirements: 5.1, 5.2, 5.4, 5.5, 5.6
 
 import { useState } from 'react';
@@ -9,6 +9,7 @@ import { validateReading } from '../domain/validation';
 import { addReading } from '../services/readingsRepository';
 import { NotionService } from '../services/notionService';
 import { useAppStore } from '../state/appStore';
+import { useI18n } from '../services/i18n';
 
 type MealTagChoice = '' | 'pre' | 'post';
 
@@ -36,6 +37,7 @@ function toLocalInputValue(date: Date): string {
 
 export default function QuickRecord({ persist, onRecorded }: QuickRecordProps) {
   const { accessToken, rootPageId } = useAppStore();
+  const { t } = useI18n();
 
   const [glucose, setGlucose] = useState('');
   const [mealTag, setMealTag] = useState<MealTagChoice>('');
@@ -48,10 +50,10 @@ export default function QuickRecord({ persist, onRecorded }: QuickRecordProps) {
 
   async function defaultPersist(r: Reading): Promise<void> {
     if (!accessToken) {
-      throw new Error('No conectado a Notion.');
+      throw new Error(t('record.notConnected'));
     }
     if (!rootPageId) {
-      throw new Error('No se ha seleccionado una página de Notion.');
+      throw new Error(t('record.noPage'));
     }
     const service = new NotionService(accessToken);
     await addReading(service, rootPageId, r);
@@ -66,7 +68,14 @@ export default function QuickRecord({ persist, onRecorded }: QuickRecordProps) {
 
     const result = validateReading({ glucose: glucoseValue, mealTag });
     if (!result.valid) {
-      setError(result.message ?? 'Lectura inválida.');
+      // Map validation messages to i18n keys
+      if (result.message?.includes('glucosa') || result.message?.includes('Glucose')) {
+        setError(t('validation.glucoseRange'));
+      } else if (result.message?.includes('etiqueta') || result.message?.includes('Meal tag')) {
+        setError(t('validation.mealTag'));
+      } else {
+        setError(t('validation.invalidReading'));
+      }
       return;
     }
 
@@ -82,14 +91,14 @@ export default function QuickRecord({ persist, onRecorded }: QuickRecordProps) {
     setSubmitting(true);
     try {
       await doPersist(reading);
-      setSuccess('Lectura guardada.');
+      setSuccess(t('record.success'));
       onRecorded?.(reading);
       setGlucose('');
       setMealTag('');
       setNotes('');
       setTimestamp(toLocalInputValue(new Date()));
     } catch {
-      setError('La lectura no se guardó. Intenta de nuevo.');
+      setError(t('record.error'));
     } finally {
       setSubmitting(false);
     }
@@ -102,11 +111,11 @@ export default function QuickRecord({ persist, onRecorded }: QuickRecordProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 200, damping: 22 }}
     >
-      <h2 id="quick-record-heading">Registrar una lectura</h2>
+      <h2 id="quick-record-heading">{t('record.heading')}</h2>
 
       <form onSubmit={handleSubmit} noValidate>
         <div>
-          <label htmlFor="quick-record-glucose">Glucosa (mg/dL)</label>
+          <label htmlFor="quick-record-glucose">{t('record.glucoseLabel')}</label>
           <input
             id="quick-record-glucose"
             name="glucose"
@@ -118,7 +127,7 @@ export default function QuickRecord({ persist, onRecorded }: QuickRecordProps) {
         </div>
 
         <fieldset>
-          <legend>Etiqueta de comida</legend>
+          <legend>{t('record.mealTagLegend')}</legend>
           <label>
             <input
               type="radio"
@@ -127,7 +136,7 @@ export default function QuickRecord({ persist, onRecorded }: QuickRecordProps) {
               checked={mealTag === 'pre'}
               onChange={() => setMealTag('pre')}
             />
-            Pre-comida
+            {t('record.pre')}
           </label>
           <label>
             <input
@@ -137,12 +146,12 @@ export default function QuickRecord({ persist, onRecorded }: QuickRecordProps) {
               checked={mealTag === 'post'}
               onChange={() => setMealTag('post')}
             />
-            Post-comida
+            {t('record.post')}
           </label>
         </fieldset>
 
         <div>
-          <label htmlFor="quick-record-timestamp">Hora</label>
+          <label htmlFor="quick-record-timestamp">{t('record.timestampLabel')}</label>
           <input
             id="quick-record-timestamp"
             name="timestamp"
@@ -153,12 +162,12 @@ export default function QuickRecord({ persist, onRecorded }: QuickRecordProps) {
         </div>
 
         <div>
-          <label htmlFor="quick-record-notes">Observaciones (opcional)</label>
+          <label htmlFor="quick-record-notes">{t('record.notesLabel')}</label>
           <textarea
             id="quick-record-notes"
             name="notes"
             rows={2}
-            placeholder="Alimentación, actividad, cómo te sientes..."
+            placeholder={t('record.notesPlaceholder')}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             style={{ width: '100%', resize: 'vertical', padding: '14px 16px', borderRadius: '12px', border: '2px solid rgba(26,31,54,0.1)', font: 'inherit', fontWeight: 600, background: 'rgba(255,255,255,0.7)' }}
@@ -171,7 +180,7 @@ export default function QuickRecord({ persist, onRecorded }: QuickRecordProps) {
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.95 }}
         >
-          {submitting ? 'Guardando…' : 'Guardar lectura'}
+          {submitting ? t('record.submitting') : t('record.submit')}
         </motion.button>
       </form>
 

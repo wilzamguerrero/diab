@@ -1,5 +1,5 @@
 // Calculator — suggested insulin dose calculator with medical-safety gating.
-// Spanish UI with motion animations.
+// i18n via useI18n hook, with motion animations.
 // Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 4.4, 8.1, 8.2, 8.3
 
 import { useMemo, useState } from 'react';
@@ -8,10 +8,11 @@ import { motion } from 'motion/react';
 import type { DoseResult, PatientProfile, Reading } from '../types';
 import { calculateDose } from '../domain/insulin';
 import { useAppStore, acknowledgeDisclaimer } from '../state/appStore';
+import { useI18n } from '../services/i18n';
 import FoodTable from './FoodTable';
 
 /**
- * The Medical_Disclaimer text. (Req 8.1)
+ * The Medical_Disclaimer text (kept for test access). (Req 8.1)
  */
 export const MEDICAL_DISCLAIMER =
   'Aviso médico: las dosis sugeridas no constituyen consejo médico. Son una ' +
@@ -30,6 +31,7 @@ function formatUnits(value: number): string {
 
 export default function Calculator({ profile: profileProp, onRecord, foodTable }: CalculatorProps) {
   const store = useAppStore();
+  const { t } = useI18n();
   const profile = profileProp !== undefined ? profileProp : store.profile;
   const { disclaimerAcknowledged } = store;
 
@@ -70,10 +72,10 @@ export default function Calculator({ profile: profileProp, onRecord, foodTable }
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 200, damping: 22 }}
     >
-      <h2 id="calculator-heading">Calculadora de dosis de insulina</h2>
+      <h2 id="calculator-heading">{t('calc.heading')}</h2>
 
       <p role="note" data-testid="medical-disclaimer" className="calculator__disclaimer">
-        {MEDICAL_DISCLAIMER}
+        {t('calc.disclaimer')}
       </p>
 
       {!disclaimerAcknowledged ? (
@@ -83,21 +85,21 @@ export default function Calculator({ profile: profileProp, onRecord, foodTable }
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          <p>Por favor, reconoce el aviso médico antes de usar la calculadora.</p>
+          <p>{t('calc.ackPrompt')}</p>
           <motion.button
             type="button"
             onClick={() => acknowledgeDisclaimer()}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            Entendido
+            {t('calc.ackButton')}
           </motion.button>
         </motion.div>
       ) : (
         <>
           <div className="calculator__inputs">
             <div>
-              <label htmlFor="calculator-glucose">Glucosa actual (mg/dL)</label>
+              <label htmlFor="calculator-glucose">{t('calc.glucoseLabel')}</label>
               <input
                 id="calculator-glucose"
                 name="currentGlucose"
@@ -112,13 +114,13 @@ export default function Calculator({ profile: profileProp, onRecord, foodTable }
             </div>
 
             <div>
-              <label htmlFor="calculator-manual-carbs">Carbohidratos (manual, g)</label>
+              <label htmlFor="calculator-manual-carbs">{t('calc.manualCarbsLabel')}</label>
               <input
                 id="calculator-manual-carbs"
                 name="manualCarbs"
                 type="number"
                 inputMode="numeric"
-                placeholder="Reemplaza selección de alimentos"
+                placeholder={t('calc.manualCarbsPlaceholder')}
                 value={manualCarbs}
                 onChange={(e) => {
                   setManualCarbs(e.target.value);
@@ -138,8 +140,8 @@ export default function Calculator({ profile: profileProp, onRecord, foodTable }
           )}
 
           <p className="calculator__carbs" aria-live="polite" data-testid="effective-carbs">
-            Carbohidratos usados: <strong>{effectiveCarbs} g</strong>
-            {manualCarbsValue !== null ? ' (entrada manual)' : ' (de selección de alimentos)'}
+            {t('calc.effectiveCarbs')}: <strong>{effectiveCarbs} g</strong>
+            {manualCarbsValue !== null ? ` ${t('calc.carbsManual')}` : ` ${t('calc.carbsFood')}`}
           </p>
 
           {profileIncomplete && (
@@ -149,9 +151,7 @@ export default function Calculator({ profile: profileProp, onRecord, foodTable }
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              Tu perfil de paciente está incompleto. Completa tu perfil
-              (ratio insulina-carbohidratos, factor de corrección y glucosa objetivo)
-              para calcular una dosis sugerida.
+              {t('calc.profileIncomplete')}
             </motion.p>
           )}
 
@@ -164,28 +164,27 @@ export default function Calculator({ profile: profileProp, onRecord, foodTable }
               transition={{ type: 'spring', stiffness: 250, damping: 20 }}
             >
               <p className="calculator__suggestion-label" data-testid="suggestion-label">
-                Esta es solo una <strong>sugerencia</strong> y requiere validación del
-                paciente o médico antes de su uso.
+                {t('calc.suggestionNote')}
               </p>
 
               <dl className="calculator__breakdown">
                 <div>
-                  <dt>Cobertura de carbohidratos</dt>
-                  <dd data-testid="carb-coverage">{formatUnits(result.carbCoverage)} unidades</dd>
+                  <dt>{t('calc.carbCoverage')}</dt>
+                  <dd data-testid="carb-coverage">{formatUnits(result.carbCoverage)} {t('calc.units')}</dd>
                 </div>
                 <div>
-                  <dt>Corrección</dt>
-                  <dd data-testid="correction">{formatUnits(result.correction)} unidades</dd>
+                  <dt>{t('calc.correction')}</dt>
+                  <dd data-testid="correction">{formatUnits(result.correction)} {t('calc.units')}</dd>
                 </div>
               </dl>
 
               <p className="calculator__dose">
-                Dosis sugerida:{' '}
-                <strong data-testid="suggested-dose">{formatUnits(result.dose)} unidades</strong>
+                {t('calc.suggestedDose')}:{' '}
+                <strong data-testid="suggested-dose">{formatUnits(result.dose)} {t('calc.units')}</strong>
               </p>
 
               <p role="note" data-testid="dose-disclaimer" className="calculator__disclaimer">
-                {MEDICAL_DISCLAIMER}
+                {t('calc.disclaimer')}
               </p>
 
               <motion.button
@@ -195,7 +194,7 @@ export default function Calculator({ profile: profileProp, onRecord, foodTable }
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                {confirmed ? 'Confirmado' : 'Confirmar y registrar dosis'}
+                {confirmed ? t('calc.confirmed') : t('calc.confirmButton')}
               </motion.button>
 
               {confirmed && (
@@ -205,7 +204,7 @@ export default function Calculator({ profile: profileProp, onRecord, foodTable }
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                 >
-                  Dosis sugerida confirmada.
+                  {t('calc.confirmedMsg')}
                 </motion.p>
               )}
             </motion.div>

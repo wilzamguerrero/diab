@@ -1,11 +1,12 @@
 // FoodTable component: searchable food list with selectable items.
-// Spanish UI with motion animations.
+// i18n via useI18n hook — food names are looked up via t('food.<id>').
 // Requirements 4.1, 4.2, 4.3
 
 import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import type { FoodItem, FoodSelection } from '../types';
 import { FOOD_TABLE, carbsFromSelections } from '../data/foodTable';
+import { useI18n } from '../services/i18n';
 
 export interface FoodTableProps {
   onSelectionsChange?: (selections: FoodSelection[], totalCarbs: number) => void;
@@ -26,14 +27,18 @@ function toSelections(items: FoodItem[], quantities: Map<string, number>): FoodS
 }
 
 export default function FoodTable({ onSelectionsChange, items = FOOD_TABLE }: FoodTableProps) {
+  const { t } = useI18n();
   const [query, setQuery] = useState('');
   const [quantities, setQuantities] = useState<Map<string, number>>(new Map());
 
   const filteredItems = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     if (normalized === '') return items;
-    return items.filter((item) => item.name.toLowerCase().includes(normalized));
-  }, [items, query]);
+    return items.filter((item) => {
+      const displayName = t(`food.${item.id}`) || item.name;
+      return displayName.toLowerCase().includes(normalized);
+    });
+  }, [items, query, t]);
 
   const selections = useMemo(() => toSelections(items, quantities), [items, quantities]);
   const totalCarbs = useMemo(() => carbsFromSelections(selections), [selections]);
@@ -65,24 +70,25 @@ export default function FoodTable({ onSelectionsChange, items = FOOD_TABLE }: Fo
   return (
     <section aria-label="Tabla de alimentos" className="food-table">
       <label className="food-table__search">
-        <span>Buscar alimentos</span>
+        <span>{t('food.searchLabel')}</span>
         <input
           type="search"
           value={query}
-          placeholder="Buscar alimentos por nombre"
+          placeholder={t('food.searchPlaceholder')}
           onChange={(event) => setQuery(event.target.value)}
         />
       </label>
 
       {filteredItems.length === 0 ? (
         <p className="food-table__empty" role="status">
-          Ningún alimento coincide con "{query}".
+          {t('food.noMatch')} &quot;{query}&quot;.
         </p>
       ) : (
         <ul className="food-table__list">
           {filteredItems.map((item, index) => {
             const quantity = quantities.get(item.id);
             const isSelected = quantity !== undefined;
+            const displayName = t(`food.${item.id}`) || item.name;
             return (
               <motion.li
                 key={item.id}
@@ -97,20 +103,20 @@ export default function FoodTable({ onSelectionsChange, items = FOOD_TABLE }: Fo
                     checked={isSelected}
                     onChange={(event) => toggleItem(item, event.target.checked)}
                   />
-                  <span className="food-table__item-name">{item.name}</span>
+                  <span className="food-table__item-name">{displayName}</span>
                 </label>
                 <span className="food-table__item-carbs">
-                  {item.carbsPerServing} g carbs / {item.unitLabel}
+                  {item.carbsPerServing} {t('food.carbsPerServing')} / {item.unitLabel}
                 </span>
                 {isSelected && (
                   <label className="food-table__item-quantity">
-                    <span>Porciones ({item.unitLabel})</span>
+                    <span>{t('food.servings')} ({item.unitLabel})</span>
                     <input
                       type="number"
                       min={MIN_QUANTITY}
                       step="any"
                       value={quantity}
-                      aria-label={`Porciones de ${item.name}`}
+                      aria-label={`${t('food.servingsOf')} ${displayName}`}
                       onChange={(event) => updateQuantity(item, event.target.value)}
                     />
                   </label>
@@ -122,7 +128,7 @@ export default function FoodTable({ onSelectionsChange, items = FOOD_TABLE }: Fo
       )}
 
       <p className="food-table__total" aria-live="polite">
-        Total carbohidratos: <strong>{totalCarbs} g</strong>
+        {t('food.totalCarbs')}: <strong>{totalCarbs} g</strong>
       </p>
     </section>
   );

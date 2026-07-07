@@ -1,0 +1,404 @@
+// Lightweight reactive i18n service for the Diabetes Insulin Tracker.
+// Supports 'es' (Spanish, default) and 'en' (English).
+// Uses useSyncExternalStore for React binding (same pattern as appStore.ts).
+
+import { useSyncExternalStore } from 'react';
+
+export type Lang = 'es' | 'en';
+
+const STORAGE_KEY = 'dit:language';
+
+type Listener = () => void;
+
+function getStorage(): Storage | null {
+  try {
+    if (typeof globalThis !== 'undefined' && globalThis.localStorage) return globalThis.localStorage;
+  } catch { /* ignore */ }
+  return null;
+}
+
+function readPersistedLang(): Lang {
+  const storage = getStorage();
+  if (!storage) return 'es';
+  try {
+    const v = storage.getItem(STORAGE_KEY);
+    if (v === 'en' || v === 'es') return v;
+  } catch { /* ignore */ }
+  return 'es';
+}
+
+function persistLang(lang: Lang): void {
+  const storage = getStorage();
+  if (!storage) return;
+  try { storage.setItem(STORAGE_KEY, lang); } catch { /* ignore */ }
+}
+
+let currentLang: Lang = readPersistedLang();
+const listeners = new Set<Listener>();
+
+function emit() { for (const l of listeners) l(); }
+
+export function setLang(lang: Lang): void {
+  if (lang === currentLang) return;
+  currentLang = lang;
+  persistLang(lang);
+  emit();
+}
+
+export function getLang(): Lang { return currentLang; }
+
+function subscribe(listener: Listener): () => void {
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
+}
+
+function getSnapshot(): Lang { return currentLang; }
+
+// ── Translation dictionaries ─────────────────────────────────────────
+
+const es: Record<string, string> = {
+  // App
+  'app.title': 'Diabetes Insulin Tracker',
+  'tab.calculator': 'Calculadora',
+  'tab.record': 'Registrar',
+  'tab.history': 'Historial',
+  'tab.metrics': 'Métricas',
+  'tab.profile': 'Perfil',
+  'app.sections': 'Secciones',
+
+  // NotionConnect
+  'notion.title': 'Conectar Notion',
+  'notion.description': 'Conecta tu espacio de trabajo de Notion para registrar y almacenar tus lecturas. La grabación de datos no está disponible hasta que te conectes.',
+  'notion.button': 'Conectar Notion',
+  'notion.connecting': 'Conectando…',
+  'notion.error': 'La conexión con Notion falló. Intenta de nuevo.',
+  'notion.clientError': 'El ID de cliente de Notion OAuth no está configurado.',
+
+  // PageSelector
+  'page.title': 'Selecciona una página',
+  'page.description': 'Elige la página de Notion donde se almacenarán tu perfil y lecturas.',
+  'page.searchLabel': 'Buscar páginas',
+  'page.searchPlaceholder': 'Buscar páginas por título',
+  'page.loading': 'Buscando páginas…',
+  'page.error': 'No se pudieron cargar tus páginas de Notion',
+  'page.retry': 'Reintentar',
+  'page.empty': 'No se encontraron páginas. Asegúrate de haber compartido al menos una página con la integración durante la autorización.',
+  'page.untitled': 'Sin título',
+
+  // Calculator
+  'calc.heading': 'Calculadora de dosis de insulina',
+  'calc.disclaimer': 'Aviso médico: las dosis sugeridas no constituyen consejo médico. Son una estimación no vinculante y deben ser validadas por el paciente o su médico antes de su uso.',
+  'calc.ackPrompt': 'Por favor, reconoce el aviso médico antes de usar la calculadora.',
+  'calc.ackButton': 'Entendido',
+  'calc.glucoseLabel': 'Glucosa actual (mg/dL)',
+  'calc.manualCarbsLabel': 'Carbohidratos (manual, g)',
+  'calc.manualCarbsPlaceholder': 'Reemplaza selección de alimentos',
+  'calc.effectiveCarbs': 'Carbohidratos usados',
+  'calc.carbsManual': '(entrada manual)',
+  'calc.carbsFood': '(de selección de alimentos)',
+  'calc.profileIncomplete': 'Tu perfil de paciente está incompleto. Completa tu perfil (ratio insulina-carbohidratos, factor de corrección y glucosa objetivo) para calcular una dosis sugerida.',
+  'calc.suggestionNote': 'Esta es solo una sugerencia y requiere validación del paciente o médico antes de su uso.',
+  'calc.carbCoverage': 'Cobertura de carbohidratos',
+  'calc.correction': 'Corrección',
+  'calc.units': 'unidades',
+  'calc.suggestedDose': 'Dosis sugerida',
+  'calc.confirmButton': 'Confirmar y registrar dosis',
+  'calc.confirmed': 'Confirmado',
+  'calc.confirmedMsg': 'Dosis sugerida confirmada.',
+
+  // FoodTable
+  'food.searchLabel': 'Buscar alimentos',
+  'food.searchPlaceholder': 'Buscar alimentos por nombre',
+  'food.noMatch': 'Ningún alimento coincide con',
+  'food.servings': 'Porciones',
+  'food.servingsOf': 'Porciones de',
+  'food.totalCarbs': 'Total carbohidratos',
+  'food.carbsPerServing': 'g carbs',
+  'food.bread-white': 'Pan blanco',
+  'food.bread-whole-wheat': 'Pan integral',
+  'food.rice-white-cooked': 'Arroz blanco (cocido)',
+  'food.rice-brown-cooked': 'Arroz integral (cocido)',
+  'food.pasta-cooked': 'Pasta (cocida)',
+  'food.potato-medium': 'Papa (horneada)',
+  'food.oatmeal-cooked': 'Avena (cocida)',
+  'food.cereal-corn-flakes': 'Hojuelas de maíz',
+  'food.apple-medium': 'Manzana',
+  'food.banana-medium': 'Plátano',
+  'food.orange-medium': 'Naranja',
+  'food.grapes': 'Uvas',
+  'food.strawberries': 'Fresas',
+  'food.milk-whole': 'Leche entera',
+  'food.yogurt-plain': 'Yogur natural',
+  'food.orange-juice': 'Jugo de naranja',
+  'food.soda-cola': 'Refresco de cola',
+  'food.beans-black-cooked': 'Frijoles negros (cocidos)',
+  'food.corn-cooked': 'Elote (cocido)',
+  'food.carrot-raw': 'Zanahoria',
+  'food.tortilla-flour': 'Tortilla de harina',
+  'food.bagel-plain': 'Bagel (natural)',
+  'food.pizza-cheese': 'Pizza de queso',
+  'food.ice-cream-vanilla': 'Helado de vainilla',
+  'food.cookie-chocolate-chip': 'Galleta con chispas de chocolate',
+
+  // QuickRecord
+  'record.heading': 'Registrar una lectura',
+  'record.glucoseLabel': 'Glucosa (mg/dL)',
+  'record.mealTagLegend': 'Etiqueta de comida',
+  'record.pre': 'Pre-comida',
+  'record.post': 'Post-comida',
+  'record.timestampLabel': 'Hora',
+  'record.notesLabel': 'Observaciones (opcional)',
+  'record.notesPlaceholder': 'Alimentación, actividad, cómo te sientes...',
+  'record.submit': 'Guardar lectura',
+  'record.submitting': 'Guardando…',
+  'record.success': 'Lectura guardada.',
+  'record.error': 'La lectura no se guardó. Intenta de nuevo.',
+  'record.notConnected': 'No conectado a Notion.',
+  'record.noPage': 'No se ha seleccionado una página de Notion.',
+
+  // HistoryView
+  'history.heading': 'Historial de lecturas',
+  'history.rangeLabel': 'Seleccionar rango de tiempo',
+  'history.day': 'Día',
+  'history.week': 'Semana',
+  'history.month': 'Mes',
+  'history.year': 'Año',
+  'history.loading': 'Cargando...',
+  'history.error': 'No se pudieron cargar las lecturas',
+  'history.empty': 'No se encontraron lecturas para el rango seleccionado.',
+  'history.glucose': 'Glucosa',
+  'history.mealTag': 'Etiqueta',
+  'history.date': 'Fecha',
+  'history.notes': 'Observaciones',
+  'history.noNotes': 'Sin observaciones',
+
+  // MetricsView
+  'metrics.label': 'Métricas',
+  'metrics.audienceLabel': 'Seleccionar audiencia de métricas',
+  'metrics.patient': 'Paciente',
+  'metrics.doctor': 'Doctor',
+  'metrics.empty': 'No se encontraron lecturas para el rango seleccionado.',
+  'metrics.totalReadings': 'Lecturas totales',
+  'metrics.inRange': 'En rango',
+  'metrics.average': 'Glucosa promedio',
+  'metrics.preCount': 'Lecturas pre-comida',
+  'metrics.postCount': 'Lecturas post-comida',
+  'metrics.min': 'Glucosa mínima',
+  'metrics.max': 'Glucosa máxima',
+  'metrics.tir': 'Tiempo en rango',
+  'metrics.patientLabel': 'Métricas del paciente',
+  'metrics.doctorLabel': 'Métricas del doctor',
+  'metrics.rangeLabel': 'Seleccionar rango de métricas',
+  'metrics.summary': 'Resumen',
+  'metrics.chart': 'Gráfica',
+  'metrics.viewLabel': 'Vista de métricas',
+
+  // ProfileSettings
+  'profile.heading': 'Perfil del paciente',
+  'profile.icRatio': 'Ratio insulina-carbohidratos (g/unidad)',
+  'profile.isf': 'Factor de sensibilidad a insulina (mg/dL por unidad)',
+  'profile.targetGlucose': 'Glucosa objetivo (mg/dL)',
+  'profile.save': 'Guardar perfil',
+  'profile.saved': 'Perfil guardado.',
+  'profile.saveError': 'No se pudo guardar tu perfil. Intenta de nuevo.',
+  'profile.invalidDefault': 'Por favor, ingresa valores válidos de perfil.',
+
+  // Validation
+  'validation.icRatio': 'El ratio insulina-carbohidratos debe ser un número mayor que 0.',
+  'validation.isf': 'El factor de sensibilidad a insulina debe ser un número mayor que 0.',
+  'validation.targetGlucose': 'La glucosa objetivo debe estar entre 40 y 400 mg/dL.',
+  'validation.glucoseRange': 'La glucosa debe estar entre 20 y 600 mg/dL.',
+  'validation.mealTag': 'La etiqueta de comida debe ser "pre" o "post".',
+  'validation.invalidReading': 'Lectura inválida.',
+
+  // Language selector
+  'lang.label': 'Idioma',
+  'lang.es': 'Español',
+  'lang.en': 'English',
+};
+
+const en: Record<string, string> = {
+  // App
+  'app.title': 'Diabetes Insulin Tracker',
+  'tab.calculator': 'Calculator',
+  'tab.record': 'Record',
+  'tab.history': 'History',
+  'tab.metrics': 'Metrics',
+  'tab.profile': 'Profile',
+  'app.sections': 'Sections',
+
+  // NotionConnect
+  'notion.title': 'Connect Notion',
+  'notion.description': 'Connect your Notion workspace to record and store your readings. Data recording is not available until you connect.',
+  'notion.button': 'Connect Notion',
+  'notion.connecting': 'Connecting…',
+  'notion.error': 'The Notion connection failed. Please try again.',
+  'notion.clientError': 'The Notion OAuth client ID is not configured.',
+
+  // PageSelector
+  'page.title': 'Select a page',
+  'page.description': 'Choose the Notion page where your profile and readings will be stored.',
+  'page.searchLabel': 'Search pages',
+  'page.searchPlaceholder': 'Search pages by title',
+  'page.loading': 'Searching pages…',
+  'page.error': 'Could not load your Notion pages',
+  'page.retry': 'Retry',
+  'page.empty': 'No pages found. Make sure you shared at least one page with the integration during authorization.',
+  'page.untitled': 'Untitled',
+
+  // Calculator
+  'calc.heading': 'Insulin dose calculator',
+  'calc.disclaimer': 'Medical notice: suggested doses do not constitute medical advice. They are a non-binding estimate and must be validated by the patient or their physician before use.',
+  'calc.ackPrompt': 'Please acknowledge the medical notice before using the calculator.',
+  'calc.ackButton': 'Understood',
+  'calc.glucoseLabel': 'Current glucose (mg/dL)',
+  'calc.manualCarbsLabel': 'Carbohydrates (manual, g)',
+  'calc.manualCarbsPlaceholder': 'Overrides food selection',
+  'calc.effectiveCarbs': 'Carbs used',
+  'calc.carbsManual': '(manual entry)',
+  'calc.carbsFood': '(from food selection)',
+  'calc.profileIncomplete': 'Your patient profile is incomplete. Complete your profile (insulin-to-carb ratio, correction factor, and target glucose) to calculate a suggested dose.',
+  'calc.suggestionNote': 'This is only a suggestion and requires validation by the patient or physician before use.',
+  'calc.carbCoverage': 'Carb coverage',
+  'calc.correction': 'Correction',
+  'calc.units': 'units',
+  'calc.suggestedDose': 'Suggested dose',
+  'calc.confirmButton': 'Confirm and record dose',
+  'calc.confirmed': 'Confirmed',
+  'calc.confirmedMsg': 'Suggested dose confirmed.',
+
+  // FoodTable
+  'food.searchLabel': 'Search foods',
+  'food.searchPlaceholder': 'Search foods by name',
+  'food.noMatch': 'No food matches',
+  'food.servings': 'Servings',
+  'food.servingsOf': 'Servings of',
+  'food.totalCarbs': 'Total carbohydrates',
+  'food.carbsPerServing': 'g carbs',
+  'food.bread-white': 'White bread',
+  'food.bread-whole-wheat': 'Whole wheat bread',
+  'food.rice-white-cooked': 'White rice (cooked)',
+  'food.rice-brown-cooked': 'Brown rice (cooked)',
+  'food.pasta-cooked': 'Pasta (cooked)',
+  'food.potato-medium': 'Potato (baked)',
+  'food.oatmeal-cooked': 'Oatmeal (cooked)',
+  'food.cereal-corn-flakes': 'Corn flakes',
+  'food.apple-medium': 'Apple',
+  'food.banana-medium': 'Banana',
+  'food.orange-medium': 'Orange',
+  'food.grapes': 'Grapes',
+  'food.strawberries': 'Strawberries',
+  'food.milk-whole': 'Milk (whole)',
+  'food.yogurt-plain': 'Plain yogurt',
+  'food.orange-juice': 'Orange juice',
+  'food.soda-cola': 'Cola (regular)',
+  'food.beans-black-cooked': 'Black beans (cooked)',
+  'food.corn-cooked': 'Corn (cooked)',
+  'food.carrot-raw': 'Carrot',
+  'food.tortilla-flour': 'Flour tortilla',
+  'food.bagel-plain': 'Bagel (plain)',
+  'food.pizza-cheese': 'Cheese pizza',
+  'food.ice-cream-vanilla': 'Vanilla ice cream',
+  'food.cookie-chocolate-chip': 'Chocolate chip cookie',
+
+  // QuickRecord
+  'record.heading': 'Record a reading',
+  'record.glucoseLabel': 'Glucose (mg/dL)',
+  'record.mealTagLegend': 'Meal tag',
+  'record.pre': 'Pre-meal',
+  'record.post': 'Post-meal',
+  'record.timestampLabel': 'Time',
+  'record.notesLabel': 'Notes (optional)',
+  'record.notesPlaceholder': 'Diet, activity, how you feel...',
+  'record.submit': 'Save reading',
+  'record.submitting': 'Saving…',
+  'record.success': 'Reading saved.',
+  'record.error': 'The reading was not saved. Please try again.',
+  'record.notConnected': 'Not connected to Notion.',
+  'record.noPage': 'No Notion page has been selected.',
+
+  // HistoryView
+  'history.heading': 'Reading history',
+  'history.rangeLabel': 'Select time range',
+  'history.day': 'Day',
+  'history.week': 'Week',
+  'history.month': 'Month',
+  'history.year': 'Year',
+  'history.loading': 'Loading...',
+  'history.error': 'Could not load readings',
+  'history.empty': 'No readings found for the selected range.',
+  'history.glucose': 'Glucose',
+  'history.mealTag': 'Tag',
+  'history.date': 'Date',
+  'history.notes': 'Notes',
+  'history.noNotes': 'No notes',
+
+  // MetricsView
+  'metrics.label': 'Metrics',
+  'metrics.audienceLabel': 'Select metrics audience',
+  'metrics.patient': 'Patient',
+  'metrics.doctor': 'Doctor',
+  'metrics.empty': 'No readings found for the selected range.',
+  'metrics.totalReadings': 'Total readings',
+  'metrics.inRange': 'In range',
+  'metrics.average': 'Average glucose',
+  'metrics.preCount': 'Pre-meal readings',
+  'metrics.postCount': 'Post-meal readings',
+  'metrics.min': 'Minimum glucose',
+  'metrics.max': 'Maximum glucose',
+  'metrics.tir': 'Time in range',
+  'metrics.patientLabel': 'Patient metrics',
+  'metrics.doctorLabel': 'Doctor metrics',
+  'metrics.rangeLabel': 'Select metrics range',
+  'metrics.summary': 'Summary',
+  'metrics.chart': 'Chart',
+  'metrics.viewLabel': 'Metrics view',
+
+  // ProfileSettings
+  'profile.heading': 'Patient profile',
+  'profile.icRatio': 'Insulin-to-carb ratio (g/unit)',
+  'profile.isf': 'Insulin sensitivity factor (mg/dL per unit)',
+  'profile.targetGlucose': 'Target glucose (mg/dL)',
+  'profile.save': 'Save profile',
+  'profile.saved': 'Profile saved.',
+  'profile.saveError': 'Could not save your profile. Please try again.',
+  'profile.invalidDefault': 'Please enter valid profile values.',
+
+  // Validation
+  'validation.icRatio': 'The insulin-to-carb ratio must be a number greater than 0.',
+  'validation.isf': 'The insulin sensitivity factor must be a number greater than 0.',
+  'validation.targetGlucose': 'Target glucose must be between 40 and 400 mg/dL.',
+  'validation.glucoseRange': 'Glucose must be between 20 and 600 mg/dL.',
+  'validation.mealTag': 'Meal tag must be "pre" or "post".',
+  'validation.invalidReading': 'Invalid reading.',
+
+  // Language selector
+  'lang.label': 'Language',
+  'lang.es': 'Español',
+  'lang.en': 'English',
+};
+
+const dictionaries: Record<Lang, Record<string, string>> = { es, en };
+
+/** Translate a key to the current language. Falls back to key itself if missing. */
+export function t(key: string): string {
+  return dictionaries[currentLang][key] ?? key;
+}
+
+// ── React hook ───────────────────────────────────────────────────────
+
+export interface I18n {
+  t: (key: string) => string;
+  lang: Lang;
+  setLang: (lang: Lang) => void;
+}
+
+/**
+ * React hook providing translation function and language switching.
+ * Re-renders components when the language changes.
+ */
+export function useI18n(): I18n {
+  const lang = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const translate = (key: string): string => dictionaries[lang][key] ?? key;
+  return { t: translate, lang, setLang };
+}
