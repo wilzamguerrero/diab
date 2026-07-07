@@ -179,6 +179,13 @@ function ReadingItem({ reading, index }: { reading: Reading; index: number }) {
               {!reading.notes && (
                 <p style={{ margin: '4px 0', color: 'rgba(26,31,54,0.4)' }}>{t('history.noNotes')}</p>
               )}
+              {reading.photoUrl && (
+                <img
+                  src={reading.photoUrl}
+                  alt="Foto de comida"
+                  style={{ width: '100%', maxWidth: '200px', borderRadius: '12px', marginTop: '8px' }}
+                />
+              )}
             </div>
           </motion.div>
         )}

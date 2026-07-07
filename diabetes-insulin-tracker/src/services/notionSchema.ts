@@ -32,6 +32,7 @@ function readingsDatabaseProperties(): object {
     },
     Timestamp: { date: {} },
     Notes: { rich_text: {} },
+    Photo: { files: {} },
   };
 }
 

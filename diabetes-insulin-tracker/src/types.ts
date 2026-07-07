@@ -53,6 +53,10 @@ export interface Reading {
   timestamp: string;
   /** Optional notes/observations about the reading (diet, activity, etc.). */
   notes?: string;
+  /** Optional meal photo URL (from Notion files property). */
+  photoUrl?: string;
+  /** Notion file upload ID (used during creation, before it becomes a URL). */
+  photoUploadId?: string;
 }
 
 /**

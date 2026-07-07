@@ -38,6 +38,9 @@ export async function addReading(
     Meal_Tag: { select: { name: r.mealTag } },
     Timestamp: { date: { start: r.timestamp } },
     Notes: { rich_text: r.notes ? [{ text: { content: r.notes } }] : [] },
+    Photo: r.photoUploadId
+      ? { files: [{ type: 'file_upload', file_upload: { id: r.photoUploadId } }] }
+      : { files: [] },
   });
 }
 
@@ -51,7 +54,11 @@ function rowToReading(row: any): Reading {
   const timestamp = props.Timestamp?.date?.start ?? '';
   const notesRichText = props.Notes?.rich_text ?? [];
   const notes = notesRichText.map((t: any) => t.plain_text || '').join('') || undefined;
-  return { glucose, mealTag, timestamp, notes };
+  const photoFiles = props.Photo?.files ?? [];
+  const photoUrl = photoFiles.length > 0
+    ? (photoFiles[0].file?.url || photoFiles[0].external?.url || undefined)
+    : undefined;
+  return { glucose, mealTag, timestamp, notes, photoUrl };
 }
 
 /**
