@@ -647,6 +647,40 @@ export class NotionService {
     return { id: data.id };
   }
 
+  /**
+   * Retrieve the current properties schema of a database.
+   * Returns the raw properties object from Notion.
+   */
+  async getDatabaseProperties(databaseId: string): Promise<Record<string, any>> {
+    const cleanId = NotionService.formatUUID(databaseId);
+    const data = await this.notionFetch(`/databases/${cleanId}`, 'GET');
+    return data.properties ?? {};
+  }
+
+  /**
+   * Add missing properties to an existing database (schema migration).
+   * Only adds properties that don't already exist — never removes or modifies
+   * existing ones, so user data is preserved.
+   */
+  async migrateDatabase(databaseId: string, requiredProperties: Record<string, any>): Promise<void> {
+    const existing = await this.getDatabaseProperties(databaseId);
+    const missing: Record<string, any> = {};
+
+    for (const [name, schema] of Object.entries(requiredProperties)) {
+      if (!existing[name]) {
+        missing[name] = schema;
+      }
+    }
+
+    // Nothing to migrate.
+    if (Object.keys(missing).length === 0) return;
+
+    const cleanId = NotionService.formatUUID(databaseId);
+    await this.notionFetch(`/databases/${cleanId}`, 'PATCH', {
+      properties: missing,
+    });
+  }
+
   /** Create a page (row) inside a database. Returns the new page id. */
   async createDatabaseRow(databaseId: string, properties: object): Promise<{ id: string }> {
     const cleanId = NotionService.formatUUID(databaseId);

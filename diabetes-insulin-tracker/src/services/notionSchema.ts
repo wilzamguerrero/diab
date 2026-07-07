@@ -81,6 +81,15 @@ export async function ensureYear(
 
   if (existingDb) {
     databaseId = existingDb.id;
+    // Migrate schema: add any missing properties to the existing database.
+    // This ensures new fields (Notes, Photo, etc.) are added without losing data.
+    try {
+      await service.migrateDatabase(databaseId, readingsDatabaseProperties());
+    } catch {
+      // Migration is best-effort — if it fails (e.g. permissions), continue
+      // without blocking. The addReading code already handles missing properties
+      // gracefully by only sending fields with content.
+    }
   } else {
     // Create the database directly under the root page.
     const created = await service.createDatabaseUnderPage(
