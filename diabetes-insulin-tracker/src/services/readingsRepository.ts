@@ -37,21 +37,21 @@ export async function addReading(
     Glucose: { number: r.glucose },
     Meal_Tag: { select: { name: r.mealTag } },
     Timestamp: { date: { start: r.timestamp } },
+    Notes: { rich_text: r.notes ? [{ text: { content: r.notes } }] : [] },
   });
 }
 
 /**
  * Map a raw Notion database row (page) to a domain `Reading`.
- *
- * Reads the `Glucose` number, `Meal_Tag` select name, and `Timestamp` date
- * start from the row's properties.
  */
 function rowToReading(row: any): Reading {
   const props = row?.properties ?? {};
   const glucose = props.Glucose?.number ?? 0;
   const mealTag = (props.Meal_Tag?.select?.name ?? 'pre') as Reading['mealTag'];
   const timestamp = props.Timestamp?.date?.start ?? '';
-  return { glucose, mealTag, timestamp };
+  const notesRichText = props.Notes?.rich_text ?? [];
+  const notes = notesRichText.map((t: any) => t.plain_text || '').join('') || undefined;
+  return { glucose, mealTag, timestamp, notes };
 }
 
 /**

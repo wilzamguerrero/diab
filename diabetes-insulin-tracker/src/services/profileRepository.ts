@@ -5,7 +5,7 @@ import { PatientProfile } from '../types';
 // Mirrors the alarms-sync pattern (`readAlarms`/`writeAlarms`) in NotionService,
 // which persists structured config as JSON inside a code block. See design
 // "Notion Data Model": Personal_Info_Toggle → code block (json) → Patient_Profile.
-const PROFILE_TOGGLE_TITLE = 'wzg-diabetes-profile';
+const PROFILE_TOGGLE_TITLE = 'Profile';
 const PROFILE_CODE_CAPTION = 'Patient_Profile';
 
 /** Extracts the plain-text title of a toggle block from its rich_text. */

@@ -1,49 +1,30 @@
-// MetricsView component.
-//
-// Displays aggregated metrics for a set of readings supplied via props (the
-// caller filters readings for the selected range). An audience toggle switches
-// between the patient view and the doctor view:
-//
-// - Patient view: average, pre/post meal counts, and min/max glucose, computed
-//   via `computeMetrics` (Requirements 7.1, 7.2, 7.3).
-// - Doctor view: the time-in-range proportion computed via `timeInRange` over
-//   the target range `[targetLow, targetHigh]`, presented as a percentage
-//   (Requirement 7.4).
-//
-// When there are no readings, `computeMetrics` returns null and an empty-state
-// message is shown instead of any computed metrics (Requirement 7.5).
-//
-// See design.md ("MetricsView") and Requirements 7.1–7.5.
+// MetricsView component — aggregated metrics display.
+// Spanish UI with motion animations.
+// Requirements 7.1–7.5
 
 import { useState } from 'react';
+import { motion } from 'motion/react';
 import type { Reading } from '../types';
 import { computeMetrics, timeInRange } from '../domain/metrics';
 
-/** Which audience's metrics are currently shown. */
 export type MetricsAudience = 'patient' | 'doctor';
 
 export interface MetricsViewProps {
-  /** Readings for the selected range (already filtered by the caller). */
   readings: Reading[];
-  /** Inclusive lower bound of the target glucose range (mg/dL). Defaults to 70. */
   targetLow?: number;
-  /** Inclusive upper bound of the target glucose range (mg/dL). Defaults to 180. */
   targetHigh?: number;
-  /** Initial audience selection. Defaults to `'patient'`. */
   initialAudience?: MetricsAudience;
 }
 
 const AUDIENCE_OPTIONS: { audience: MetricsAudience; label: string }[] = [
-  { audience: 'patient', label: 'Patient' },
+  { audience: 'patient', label: 'Paciente' },
   { audience: 'doctor', label: 'Doctor' },
 ];
 
-/** Format a proportion in [0, 1] as a percentage string with one decimal. */
 function formatPercent(proportion: number): string {
   return `${(proportion * 100).toFixed(1)}%`;
 }
 
-/** Format a numeric glucose/average value with at most one decimal place. */
 function formatValue(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
@@ -57,55 +38,119 @@ export function MetricsView({
   const [audience, setAudience] = useState<MetricsAudience>(initialAudience);
 
   const metrics = computeMetrics(readings);
+  const inRangeProportion = timeInRange(readings, targetLow, targetHigh);
 
   return (
-    <section aria-label="Metrics">
-      <div role="group" aria-label="Select metrics audience">
+    <section aria-label="Métricas">
+      <div role="group" aria-label="Seleccionar audiencia de métricas">
         {AUDIENCE_OPTIONS.map(({ audience: kind, label }) => (
-          <button
+          <motion.button
             key={kind}
             type="button"
             aria-pressed={audience === kind}
             disabled={audience === kind}
             onClick={() => setAudience(kind)}
+            whileTap={{ scale: 0.92 }}
           >
             {label}
-          </button>
+          </motion.button>
         ))}
       </div>
 
       {metrics === null ? (
-        <p>No readings found for the selected range.</p>
-      ) : audience === 'patient' ? (
-        <dl aria-label="Patient metrics">
-          <div>
-            <dt>Average glucose</dt>
-            <dd>{formatValue(metrics.average)} mg/dL</dd>
-          </div>
-          <div>
-            <dt>Pre-meal readings</dt>
-            <dd>{metrics.preCount}</dd>
-          </div>
-          <div>
-            <dt>Post-meal readings</dt>
-            <dd>{metrics.postCount}</dd>
-          </div>
-          <div>
-            <dt>Minimum glucose</dt>
-            <dd>{formatValue(metrics.min)} mg/dL</dd>
-          </div>
-          <div>
-            <dt>Maximum glucose</dt>
-            <dd>{formatValue(metrics.max)} mg/dL</dd>
-          </div>
-        </dl>
+        <p>No se encontraron lecturas para el rango seleccionado.</p>
       ) : (
-        <dl aria-label="Doctor metrics">
-          <div>
-            <dt>Time in range ({targetLow}–{targetHigh} mg/dL)</dt>
-            <dd>{formatPercent(timeInRange(readings, targetLow, targetHigh) ?? 0)}</dd>
+        <>
+          {/* Total readings & in-range progress bar */}
+          <div className="metrics-summary">
+            <div className="metrics-summary__total">
+              <span className="metrics-summary__total-label">Lecturas totales</span>
+              <span className="metrics-summary__total-value">{metrics.count}</span>
+            </div>
+            {inRangeProportion !== null && (
+              <div className="metrics-summary__range">
+                <span className="metrics-summary__range-label">
+                  En rango ({targetLow}–{targetHigh} mg/dL): <strong>{formatPercent(inRangeProportion)}</strong>
+                </span>
+                <div className="metrics-summary__progress-track">
+                  <motion.div
+                    className="metrics-summary__progress-bar"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(inRangeProportion * 100).toFixed(1)}%` }}
+                    transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+                    style={{
+                      background: inRangeProportion >= 0.7 ? 'var(--success)' : inRangeProportion >= 0.5 ? 'var(--warning)' : 'var(--danger)',
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
-        </dl>
+
+          {audience === 'patient' ? (
+            <motion.dl
+              aria-label="Métricas del paciente"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ staggerChildren: 0.05 }}
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.0 }}
+              >
+                <dt>Glucosa promedio</dt>
+                <dd>{formatValue(metrics.average)} mg/dL</dd>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+              >
+                <dt>Lecturas pre-comida</dt>
+                <dd>{metrics.preCount}</dd>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <dt>Lecturas post-comida</dt>
+                <dd>{metrics.postCount}</dd>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+              >
+                <dt>Glucosa mínima</dt>
+                <dd>{formatValue(metrics.min)} mg/dL</dd>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <dt>Glucosa máxima</dt>
+                <dd>{formatValue(metrics.max)} mg/dL</dd>
+              </motion.div>
+            </motion.dl>
+          ) : (
+            <motion.dl
+              aria-label="Métricas del doctor"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <dt>Tiempo en rango ({targetLow}–{targetHigh} mg/dL)</dt>
+                <dd>{formatPercent(inRangeProportion ?? 0)}</dd>
+              </motion.div>
+            </motion.dl>
+          )}
+        </>
       )}
     </section>
   );

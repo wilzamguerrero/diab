@@ -1,63 +1,38 @@
 // ProfileSettings — patient profile configuration UI.
-//
-// Renders a form for the three clinical parameters (Insulin-to-Carb ratio,
-// Insulin Sensitivity Factor, Target Glucose), validates the entered values
-// with the pure `validateProfile` domain function, persists a valid profile via
-// the profile repository, and loads any stored profile on mount so the form is
-// pre-populated.
-//
-// Persistence and loading are injected as optional props (`save`/`load`) so the
-// component can be exercised in tests without a live Notion workspace. Their
-// defaults wrap the real `saveProfile`/`loadProfile` repository functions using
-// a `NotionService` built from the store's access token and `ROOT_PAGE_ID`.
-//
-// See Requirements 2.1, 2.2, 2.3, 2.4, 2.5 and design.md (ProfileSettings:
-// "Enter/validate/persist profile; load on mount").
+// Spanish UI with motion animations.
+// Requirements 2.1, 2.2, 2.3, 2.4, 2.5
 
 import { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
 import type { PatientProfile } from '../types';
 import { validateProfile } from '../domain/validation';
 import { saveProfile, loadProfile } from '../services/profileRepository';
-import { NotionService, ROOT_PAGE_ID } from '../services/notionService';
+import { NotionService } from '../services/notionService';
 import { getSnapshot, setProfile, useAppStore } from '../state/appStore';
 
-/** Injectable dependency signatures (overridable in tests). */
 export type SaveProfileFn = (profile: PatientProfile) => Promise<void>;
 export type LoadProfileFn = () => Promise<PatientProfile | null>;
 
 export interface ProfileSettingsProps {
-  /**
-   * Persist a validated profile. Defaults to the profile repository backed by a
-   * NotionService constructed from the store's access token and ROOT_PAGE_ID.
-   */
   save?: SaveProfileFn;
-  /**
-   * Load the stored profile on mount. Defaults to the profile repository backed
-   * by a NotionService constructed from the store's access token and
-   * ROOT_PAGE_ID. Returns null when no profile has been stored.
-   */
   load?: LoadProfileFn;
-  /**
-   * Optional seed profile used to pre-populate the form before/instead of the
-   * asynchronous load (e.g. a value already cached in the store).
-   */
   initialProfile?: PatientProfile | null;
 }
 
-/** Build a NotionService from the current store token (empty when disconnected). */
 function serviceFromStore(): NotionService {
   return new NotionService(getSnapshot().accessToken ?? '');
 }
 
-/** Default persistence: repository save via a store-derived NotionService. */
+function rootFromStore(): string {
+  return getSnapshot().rootPageId ?? '';
+}
+
 const defaultSave: SaveProfileFn = (profile) =>
-  saveProfile(serviceFromStore(), ROOT_PAGE_ID, profile);
+  saveProfile(serviceFromStore(), rootFromStore(), profile);
 
-/** Default load: repository read via a store-derived NotionService. */
 const defaultLoad: LoadProfileFn = () =>
-  loadProfile(serviceFromStore(), ROOT_PAGE_ID);
+  loadProfile(serviceFromStore(), rootFromStore());
 
-/** Convert a profile to string form-field values; blank when absent. */
 function toFields(profile: PatientProfile | null | undefined): {
   icRatio: string;
   isf: string;
@@ -77,14 +52,11 @@ export default function ProfileSettings({
 }: ProfileSettingsProps) {
   const { profile: cachedProfile } = useAppStore();
 
-  // Seed from an explicit initialProfile, else the cached store profile.
   const seed = initialProfile ?? cachedProfile ?? null;
   const [fields, setFields] = useState(() => toFields(seed));
   const [message, setMessage] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  // Load the stored profile on mount and populate the form. A cached/seeded
-  // profile is reflected immediately above; the async load refreshes it.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -94,13 +66,12 @@ export default function ProfileSettings({
         setProfile(loaded);
         setFields(toFields(loaded));
       } catch {
-        // Load failures are non-fatal: leave the form in its seeded state.
+        // Load failures are non-fatal
       }
     })();
     return () => {
       cancelled = true;
     };
-    // `load` is stable (prop/default); run once on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -122,27 +93,32 @@ export default function ProfileSettings({
 
     const result = validateProfile(candidate);
     if (!result.valid) {
-      // Invalid: surface the message and do NOT persist. (Req 2.2, 2.3, 2.4)
-      setMessage(result.message ?? 'Please enter valid profile values.');
+      setMessage(result.message ?? 'Por favor, ingresa valores válidos de perfil.');
       return;
     }
 
     try {
-      await save(candidate); // Persist to Notion. (Req 2.1)
-      setProfile(candidate); // Cache in the store. (Req 2.5)
+      await save(candidate);
+      setProfile(candidate);
       setMessage(null);
       setSaved(true);
     } catch {
-      setMessage('Could not save your profile. Please try again.');
+      setMessage('No se pudo guardar tu perfil. Intenta de nuevo.');
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} aria-label="Patient profile settings">
-      <h2>Patient profile</h2>
+    <motion.form
+      onSubmit={handleSubmit}
+      aria-label="Configuración del perfil del paciente"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 22 }}
+    >
+      <h2>Perfil del paciente</h2>
 
       <div>
-        <label htmlFor="profile-ic-ratio">Insulin-to-carb ratio (g/unit)</label>
+        <label htmlFor="profile-ic-ratio">Ratio insulina-carbohidratos (g/unidad)</label>
         <input
           id="profile-ic-ratio"
           name="icRatio"
@@ -155,7 +131,7 @@ export default function ProfileSettings({
       </div>
 
       <div>
-        <label htmlFor="profile-isf">Insulin sensitivity factor (mg/dL per unit)</label>
+        <label htmlFor="profile-isf">Factor de sensibilidad a insulina (mg/dL por unidad)</label>
         <input
           id="profile-isf"
           name="isf"
@@ -168,7 +144,7 @@ export default function ProfileSettings({
       </div>
 
       <div>
-        <label htmlFor="profile-target-glucose">Target glucose (mg/dL)</label>
+        <label htmlFor="profile-target-glucose">Glucosa objetivo (mg/dL)</label>
         <input
           id="profile-target-glucose"
           name="targetGlucose"
@@ -180,26 +156,38 @@ export default function ProfileSettings({
         />
       </div>
 
-      <button type="submit">Save profile</button>
+      <motion.button
+        type="submit"
+        whileHover={{ scale: 1.03 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        Guardar perfil
+      </motion.button>
 
       {message && (
-        <p role="alert" className="profile-settings__error">
+        <motion.p
+          role="alert"
+          className="profile-settings__error"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
           {message}
-        </p>
+        </motion.p>
       )}
       {saved && !message && (
-        <p role="status" className="profile-settings__status">
-          Profile saved.
-        </p>
+        <motion.p
+          role="status"
+          className="profile-settings__status"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          Perfil guardado.
+        </motion.p>
       )}
-    </form>
+    </motion.form>
   );
 }
 
-/**
- * Parse a form string to a number. Blank/whitespace yields NaN so that
- * `validateProfile` rejects empty fields with an appropriate message.
- */
 function parseNumber(value: string): number {
   const trimmed = value.trim();
   if (trimmed === '') return Number.NaN;

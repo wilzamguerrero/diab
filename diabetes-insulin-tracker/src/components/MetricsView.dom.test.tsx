@@ -16,7 +16,7 @@ describe('MetricsView empty-state (Requirement 7.5)', () => {
     render(<MetricsView readings={[]} />);
 
     expect(
-      screen.getByText('No readings found for the selected range.'),
+      screen.getByText('No se encontraron lecturas para el rango seleccionado.'),
     ).toBeInTheDocument();
     // No computed metrics should be rendered in place of the empty-state.
     expect(screen.queryByLabelText('Patient metrics')).toBeNull();
@@ -28,7 +28,7 @@ describe('MetricsView empty-state (Requirement 7.5)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Doctor' }));
 
     expect(
-      screen.getByText('No readings found for the selected range.'),
+      screen.getByText('No se encontraron lecturas para el rango seleccionado.'),
     ).toBeInTheDocument();
     expect(screen.queryByLabelText('Doctor metrics')).toBeNull();
     expect(screen.queryByLabelText('Patient metrics')).toBeNull();
@@ -52,7 +52,7 @@ describe('MetricsView doctor proportion display (Requirement 7.4)', () => {
 
     const doctorMetrics = screen.getByLabelText('Doctor metrics');
     expect(doctorMetrics).toBeInTheDocument();
-    expect(screen.getByText(/Time in range/)).toBeInTheDocument();
+    expect(screen.getByText(/Tiempo en rango/)).toBeInTheDocument();
     expect(screen.getByText('50.0%')).toBeInTheDocument();
   });
 

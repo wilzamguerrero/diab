@@ -15,9 +15,13 @@ import { NotionService } from './notionService';
 //
 // Validates: Requirements 1.5, 6.5
 
-// A plain 32-hex id (formatUUID-safe: it is returned as-is with dashes stripped).
+// A plain 32-hex id (formatUUID normalizes it to dashed UUID format).
 const DB_ID = 'a'.repeat(32);
 const PARENT_ID = 'b'.repeat(32);
+
+// The dashed UUID format that formatUUID now produces from 32-hex inputs.
+const DB_ID_DASHED = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+const PARENT_ID_DASHED = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 
 // Build a mock fetch Response-like object with a JSON payload.
 function jsonResponse(payload: unknown, ok = true, status = 200) {
@@ -86,7 +90,7 @@ describe('NotionService database operations (mocked fetch)', () => {
       expect(methodParamOf(url)).toBe('POST');
 
       const body = bodyOf(init as RequestInit);
-      expect(body.parent).toEqual({ type: 'block_id', block_id: PARENT_ID });
+      expect(body.parent).toEqual({ type: 'block_id', block_id: PARENT_ID_DASHED });
       expect(body.title).toEqual([{ type: 'text', text: { content: 'Readings 2024' } }]);
       expect(body.properties).toEqual(properties);
     });
@@ -110,7 +114,7 @@ describe('NotionService database operations (mocked fetch)', () => {
       expect((init as RequestInit).method).toBe('POST');
 
       const body = bodyOf(init as RequestInit);
-      expect(body.parent).toEqual({ database_id: DB_ID });
+      expect(body.parent).toEqual({ database_id: DB_ID_DASHED });
       expect(body.properties).toEqual(properties);
     });
   });
@@ -127,7 +131,7 @@ describe('NotionService database operations (mocked fetch)', () => {
       expect(page).toEqual({ results: [{ id: 'r1' }], has_more: false, next_cursor: null });
 
       const [url, init] = fetchMock.mock.calls[0];
-      expect(endpointOf(url)).toBe(`/databases/${DB_ID}/query`);
+      expect(endpointOf(url)).toBe(`/databases/${DB_ID_DASHED}/query`);
       expect((init as RequestInit).method).toBe('POST');
 
       const body = bodyOf(init as RequestInit);
@@ -175,7 +179,7 @@ describe('NotionService database operations (mocked fetch)', () => {
 
       // Second request carries the cursor 'c1' returned by the first page.
       const secondUrl = fetchMock.mock.calls[1][0];
-      expect(endpointOf(secondUrl)).toBe(`/databases/${DB_ID}/query`);
+      expect(endpointOf(secondUrl)).toBe(`/databases/${DB_ID_DASHED}/query`);
       const secondBody = bodyOf(fetchMock.mock.calls[1][1] as RequestInit);
       expect(secondBody.start_cursor).toBe('c1');
       expect(secondBody.filter).toEqual(queryBody.filter);

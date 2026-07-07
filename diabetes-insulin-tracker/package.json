@@ -5,16 +5,20 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:api": "wrangler pages dev public --port 8788 --compatibility-date=2024-09-01",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "deploy": "npm run build && wrangler pages deploy dist",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
+    "motion": "^12.42.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240909.0",
     "@testing-library/jest-dom": "^6.4.8",
     "@testing-library/react": "^16.0.1",
     "@testing-library/user-event": "^14.5.2",
@@ -25,6 +29,7 @@
     "jsdom": "^25.0.0",
     "typescript": "^5.5.4",
     "vite": "^5.4.3",
-    "vitest": "^2.0.5"
+    "vitest": "^2.0.5",
+    "wrangler": "^3.78.0"
   }
 }

@@ -28,14 +28,14 @@ describe('HistoryView (jsdom environment)', () => {
     render(<HistoryView fetchReadings={pendingLoader} />);
     const status = screen.getByRole('status');
     expect(status).toBeInTheDocument();
-    expect(status).toHaveTextContent(/loading/i);
+    expect(status).toHaveTextContent(/cargando/i);
   });
 
   it('shows the empty-state message when no readings fall in range (Req 6.3)', async () => {
     render(<HistoryView fetchReadings={async () => []} />);
     await waitFor(() =>
       expect(
-        screen.getByText(/no readings found for the selected range\./i),
+        screen.getByText(/no se encontraron lecturas para el rango seleccionado/i),
       ).toBeInTheDocument(),
     );
   });
@@ -61,7 +61,7 @@ describe('HistoryView (jsdom environment)', () => {
       expect(row).toHaveTextContent(`${reading.glucose} mg/dL`);
       // meal tag label
       expect(row).toHaveTextContent(
-        reading.mealTag === 'pre' ? 'Pre-meal' : 'Post-meal',
+        reading.mealTag === 'pre' ? 'Pre-comida' : 'Post-comida',
       );
       // timestamp: assert on the <time> element's machine-readable dateTime,
       // which is robust to locale-specific formatting of the visible text.
@@ -109,7 +109,7 @@ describe('HistoryView (jsdom environment)', () => {
             // meal tag label present
             expect(
               scoped.getByText(
-                reading.mealTag === 'pre' ? 'Pre-meal' : 'Post-meal',
+                reading.mealTag === 'pre' ? 'Pre-comida' : 'Post-comida',
               ),
             ).toBeInTheDocument();
             // timestamp present via <time dateTime>

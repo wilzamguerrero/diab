@@ -32,7 +32,7 @@ describe('NotionConnect — connection gating (Req 1.1)', () => {
 
     // The connect call-to-action is present.
     expect(
-      screen.getByRole('button', { name: /connect notion/i }),
+      screen.getByRole('button', { name: /conectar notion/i }),
     ).toBeInTheDocument();
     // Gated content is NOT rendered pre-connection.
     expect(screen.queryByText(GATED_TEXT)).not.toBeInTheDocument();
@@ -105,17 +105,17 @@ describe('ProfileSettings — validation messages (Req 2.2, 2.3, 2.4)', () => {
     await waitFor(() => expect(load).toHaveBeenCalled());
 
     // Enter invalid icRatio (<= 0), otherwise valid values.
-    fireEvent.change(screen.getByLabelText(/insulin-to-carb ratio/i), {
+    fireEvent.change(screen.getByLabelText(/ratio insulina-carbohidratos/i), {
       target: { value: '0' },
     });
-    fireEvent.change(screen.getByLabelText(/insulin sensitivity factor/i), {
+    fireEvent.change(screen.getByLabelText(/factor de sensibilidad/i), {
       target: { value: '50' },
     });
-    fireEvent.change(screen.getByLabelText(/target glucose/i), {
+    fireEvent.change(screen.getByLabelText(/glucosa objetivo/i), {
       target: { value: '120' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /save profile/i }));
+    fireEvent.click(screen.getByRole('button', { name: /guardar perfil/i }));
 
     const alert = await screen.findByRole('alert');
     expect(alert).toBeInTheDocument();
@@ -129,18 +129,18 @@ describe('ProfileSettings — validation messages (Req 2.2, 2.3, 2.4)', () => {
     render(<ProfileSettings load={load} save={save} />);
     await waitFor(() => expect(load).toHaveBeenCalled());
 
-    fireEvent.change(screen.getByLabelText(/insulin-to-carb ratio/i), {
+    fireEvent.change(screen.getByLabelText(/ratio insulina-carbohidratos/i), {
       target: { value: '10' },
     });
-    fireEvent.change(screen.getByLabelText(/insulin sensitivity factor/i), {
+    fireEvent.change(screen.getByLabelText(/factor de sensibilidad/i), {
       target: { value: '50' },
     });
     // 500 is outside [40, 400].
-    fireEvent.change(screen.getByLabelText(/target glucose/i), {
+    fireEvent.change(screen.getByLabelText(/glucosa objetivo/i), {
       target: { value: '500' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /save profile/i }));
+    fireEvent.click(screen.getByRole('button', { name: /guardar perfil/i }));
 
     await screen.findByRole('alert');
     expect(save).not.toHaveBeenCalled();
@@ -153,17 +153,17 @@ describe('ProfileSettings — validation messages (Req 2.2, 2.3, 2.4)', () => {
     render(<ProfileSettings load={load} save={save} />);
     await waitFor(() => expect(load).toHaveBeenCalled());
 
-    fireEvent.change(screen.getByLabelText(/insulin-to-carb ratio/i), {
+    fireEvent.change(screen.getByLabelText(/ratio insulina-carbohidratos/i), {
       target: { value: '10' },
     });
-    fireEvent.change(screen.getByLabelText(/insulin sensitivity factor/i), {
+    fireEvent.change(screen.getByLabelText(/factor de sensibilidad/i), {
       target: { value: '50' },
     });
-    fireEvent.change(screen.getByLabelText(/target glucose/i), {
+    fireEvent.change(screen.getByLabelText(/glucosa objetivo/i), {
       target: { value: '120' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /save profile/i }));
+    fireEvent.click(screen.getByRole('button', { name: /guardar perfil/i }));
 
     await waitFor(() => {
       expect(save).toHaveBeenCalledTimes(1);

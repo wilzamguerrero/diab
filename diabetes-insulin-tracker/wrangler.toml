@@ -1,0 +1,6 @@
+name = "diabetes-insulin-tracker"
+compatibility_date = "2024-09-01"
+
+# Local dev serves static assets from ./public and functions from ./functions
+# (see `npm run dev:api`). For deployment, the built SPA lives in ./dist:
+#   npm run deploy   →   builds then `wrangler pages deploy dist`

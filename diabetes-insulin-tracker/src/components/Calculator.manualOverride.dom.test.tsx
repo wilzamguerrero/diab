@@ -51,14 +51,14 @@ async function setUpDose(glucose: number, manualCarbs: number) {
   render(<Calculator profile={PROFILE} />);
 
   // Requirement 8.3: acknowledge the disclaimer before any dose is presented.
-  await user.click(screen.getByRole('button', { name: /i understand/i }));
+  await user.click(screen.getByRole('button', { name: /entendido/i }));
 
   // Drive the food selection to a non-zero carb total so the override is
   // meaningful (selection carbs = SELECTION_CARBS).
   await user.click(screen.getByRole('checkbox', { name: /white bread/i }));
 
-  await user.type(screen.getByLabelText(/current glucose/i), String(glucose));
-  await user.type(screen.getByLabelText(/carbohydrates \(manual, g\)/i), String(manualCarbs));
+  await user.type(screen.getByLabelText(/glucosa actual/i), String(glucose));
+  await user.type(screen.getByLabelText(/carbohidratos \(manual, g\)/i), String(manualCarbs));
 }
 
 describe('Calculator manual carbohydrate override (Property 10, Req 4.4)', () => {
@@ -83,7 +83,7 @@ describe('Calculator manual carbohydrate override (Property 10, Req 4.4)', () =>
             expect(expected).not.toBeNull();
 
             const displayed = screen.getByTestId('suggested-dose').textContent;
-            expect(displayed).toBe(`${expected!.dose.toFixed(1)} units`);
+            expect(displayed).toBe(`${expected!.dose.toFixed(1)} unidades`);
           },
         ),
         { numRuns: 20 },
@@ -106,7 +106,7 @@ describe('Calculator manual carbohydrate override (Property 10, Req 4.4)', () =>
     expect(manualDose!.dose).not.toBe(selectionDose!.dose);
 
     const displayed = screen.getByTestId('suggested-dose').textContent;
-    expect(displayed).toBe(`${manualDose!.dose.toFixed(1)} units`);
-    expect(displayed).not.toBe(`${selectionDose!.dose.toFixed(1)} units`);
+    expect(displayed).toBe(`${manualDose!.dose.toFixed(1)} unidades`);
+    expect(displayed).not.toBe(`${selectionDose!.dose.toFixed(1)} unidades`);
   });
 });

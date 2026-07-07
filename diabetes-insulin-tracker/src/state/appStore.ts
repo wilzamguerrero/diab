@@ -26,6 +26,12 @@ export interface AppState {
   connected: boolean;
   /** The active Notion access token, or null when disconnected. */
   accessToken: string | null;
+  /**
+   * The Notion page selected as the data root, or null when none has been
+   * chosen yet. The patient profile and per-year databases live under this
+   * page. Chosen via the page selector after connecting (mirrors oldproject).
+   */
+  rootPageId: string | null;
   /** The most recently loaded Patient_Profile, or null when unknown. */
   profile: PatientProfile | null;
   /** Whether the first-use Medical_Disclaimer has been acknowledged. */
@@ -36,6 +42,7 @@ type Listener = () => void;
 
 const TOKEN_STORAGE_KEY = 'dit:accessToken';
 const DISCLAIMER_STORAGE_KEY = 'dit:disclaimerAcknowledged';
+const ROOT_PAGE_STORAGE_KEY = 'dit:rootPageId';
 
 /**
  * Safely obtain the localStorage instance, or null when it is unavailable
@@ -96,11 +103,36 @@ function persistDisclaimer(acknowledged: boolean): void {
   }
 }
 
+function readPersistedRootPage(): string | null {
+  const storage = getStorage();
+  if (!storage) return null;
+  try {
+    return storage.getItem(ROOT_PAGE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function persistRootPage(rootPageId: string | null): void {
+  const storage = getStorage();
+  if (!storage) return;
+  try {
+    if (rootPageId === null) {
+      storage.removeItem(ROOT_PAGE_STORAGE_KEY);
+    } else {
+      storage.setItem(ROOT_PAGE_STORAGE_KEY, rootPageId);
+    }
+  } catch {
+    // Best-effort persistence; ignore write failures.
+  }
+}
+
 function createInitialState(): AppState {
   const accessToken = readPersistedToken();
   return {
     connected: accessToken !== null,
     accessToken,
+    rootPageId: readPersistedRootPage(),
     profile: null,
     disclaimerAcknowledged: readPersistedDisclaimer(),
   };
@@ -154,7 +186,17 @@ export function setConnection(token: string): void {
  */
 export function disconnect(): void {
   persistToken(null);
-  setState({ ...state, connected: false, accessToken: null, profile: null });
+  persistRootPage(null);
+  setState({ ...state, connected: false, accessToken: null, rootPageId: null, profile: null });
+}
+
+/**
+ * Select (or clear) the Notion page used as the data root. Persisted so the
+ * choice survives a reload.
+ */
+export function setRootPage(rootPageId: string | null): void {
+  persistRootPage(rootPageId);
+  setState({ ...state, rootPageId });
 }
 
 /** Cache (or clear) the loaded Patient_Profile. See Requirement 2.5. */
@@ -179,9 +221,11 @@ export function acknowledgeDisclaimer(): void {
 export function resetStore(): void {
   persistToken(null);
   persistDisclaimer(false);
+  persistRootPage(null);
   setState({
     connected: false,
     accessToken: null,
+    rootPageId: null,
     profile: null,
     disclaimerAcknowledged: false,
   });

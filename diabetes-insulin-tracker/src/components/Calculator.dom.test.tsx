@@ -38,7 +38,7 @@ describe('Calculator — disclaimer visibility (Req 8.1)', () => {
     expect(disclaimer).toBeInTheDocument();
     expect(disclaimer).toHaveAttribute('role', 'note');
     expect(disclaimer).toHaveTextContent(MEDICAL_DISCLAIMER);
-    expect(disclaimer.textContent).toMatch(/not medical advice/i);
+    expect(disclaimer.textContent).toMatch(/no constituyen consejo médico/i);
   });
 });
 
@@ -50,21 +50,21 @@ describe('Feature: diabetes-insulin-tracker, Property 8: First-use acknowledgmen
     // Before acknowledging: the acknowledgment gate is shown and there are no
     // glucose inputs to reveal a dose.
     expect(screen.getByTestId('acknowledgment-gate')).toBeInTheDocument();
-    expect(screen.queryByLabelText(/current glucose/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/glucosa actual/i)).not.toBeInTheDocument();
     expect(screen.queryByTestId('suggested-dose')).not.toBeInTheDocument();
 
     // Acknowledge the disclaimer.
-    await user.click(screen.getByRole('button', { name: /i understand/i }));
+    await user.click(screen.getByRole('button', { name: /entendido/i }));
 
     // The gate is gone and inputs are now available.
     expect(screen.queryByTestId('acknowledgment-gate')).not.toBeInTheDocument();
 
     // Entering a glucose value now reveals the suggested dose and its label.
-    await user.type(screen.getByLabelText(/current glucose/i), '200');
+    await user.type(screen.getByLabelText(/glucosa actual/i), '200');
 
     expect(screen.getByTestId('suggested-dose')).toBeInTheDocument();
     expect(screen.getByTestId('suggestion-label')).toBeInTheDocument();
-    expect(screen.getByTestId('suggestion-label')).toHaveTextContent(/suggestion/i);
+    expect(screen.getByTestId('suggestion-label')).toHaveTextContent(/sugerencia/i);
   });
 });
 
@@ -75,8 +75,8 @@ describe('Feature: diabetes-insulin-tracker, Property 7: Confirmation required b
     render(<Calculator profile={VALID_PROFILE} onRecord={onRecord} />);
 
     // Acknowledge the disclaimer and enter a glucose value to present a dose.
-    await user.click(screen.getByRole('button', { name: /i understand/i }));
-    await user.type(screen.getByLabelText(/current glucose/i), '200');
+    await user.click(screen.getByRole('button', { name: /entendido/i }));
+    await user.type(screen.getByLabelText(/glucosa actual/i), '200');
 
     // A dose is presented (with the suggestion label) but nothing is recorded
     // yet — onRecord must not be called on mere presentation.
@@ -86,7 +86,7 @@ describe('Feature: diabetes-insulin-tracker, Property 7: Confirmation required b
     expect(onRecord).not.toHaveBeenCalled();
 
     // Clicking confirm records the dose exactly once.
-    await user.click(screen.getByRole('button', { name: /confirm and record dose/i }));
+    await user.click(screen.getByRole('button', { name: /confirmar y registrar dosis/i }));
 
     expect(onRecord).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('dose-confirmed')).toBeInTheDocument();

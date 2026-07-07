@@ -2,17 +2,14 @@ import { NotionBlock, NotionToggleBlock, FileTreeNode, FileTreeSearchResult } fr
 
 const IS_BROWSER = typeof window !== 'undefined';
 const VITE_ENV = ((import.meta as any).env || {}) as Record<string, string | boolean | undefined>;
-const IS_DEV = Boolean(VITE_ENV.DEV);
 
-function getDevProxyBase(path: string): string {
-  if (!IS_BROWSER) return path;
-  const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-  const hostname = window.location.hostname;
-  return `${protocol}//${hostname}:3001${path}`;
-}
-
-const API_BASE = IS_DEV ? getDevProxyBase('/api/notion') : '/api/notion';
-const OAUTH_BASE = IS_DEV ? getDevProxyBase('/api/notion/oauth') : '/api/notion-oauth';
+// Same-origin endpoints served by the Cloudflare Pages Functions in
+// `functions/api/`. During local development, Vite proxies `/api/*` to the
+// `wrangler pages dev` server (see vite.config.ts `server.proxy`), and in
+// production Cloudflare Pages serves these routes on the same origin — so no
+// host/port special-casing is needed.
+const API_BASE = '/api/notion';
+const OAUTH_BASE = '/api/notion-oauth';
 
 export const ROOT_PAGE_ID = String(VITE_ENV.VITE_ROOT_PAGE_ID || '');
 export const NOTION_PORTFOLIO_KEY = String(VITE_ENV.VITE_NOTION_PORTFOLIO_KEY || '');
@@ -42,7 +39,9 @@ export class NotionService {
     if (!idOrUrl) return '';
     const clean = idOrUrl.replace(/-/g, '');
     const match = clean.match(/[a-fA-F0-9]{32}/);
-    return match ? match[0] : idOrUrl;
+    if (!match) return idOrUrl;
+    const hex = match[0];
+    return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
   }
 
   private async notionFetch(endpoint: string, method: string = 'GET', body?: any): Promise<any> {
@@ -623,7 +622,7 @@ export class NotionService {
 
   // ── Database operations ──────────────────────────────────────────────
 
-  /** Create a Notion database under a parent block/page. Returns the new database id. */
+  /** Create a Notion database under a parent block. Returns the new database id. */
   async createDatabase(parentBlockId: string, title: string, properties: object): Promise<{ id: string }> {
     const cleanParent = NotionService.formatUUID(parentBlockId);
     const data = await this.notionFetch('/databases', 'POST', {
@@ -632,6 +631,19 @@ export class NotionService {
       properties,
     });
     this.invalidateBlock(parentBlockId);
+    return { id: data.id };
+  }
+
+  /** Create a Notion database under a parent PAGE. Returns the new database id.
+   *  Notion API requires parent type 'page_id' for inline databases. */
+  async createDatabaseUnderPage(parentPageId: string, title: string, properties: object): Promise<{ id: string }> {
+    const cleanParent = NotionService.formatUUID(parentPageId);
+    const data = await this.notionFetch('/databases', 'POST', {
+      parent: { type: 'page_id', page_id: cleanParent },
+      title: [{ type: 'text', text: { content: title } }],
+      properties,
+    });
+    this.invalidateBlock(parentPageId);
     return { id: data.id };
   }
 

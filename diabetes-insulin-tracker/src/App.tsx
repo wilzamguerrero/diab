@@ -3,25 +3,20 @@
 // Responsibilities (task 12.1, Requirements 1.1, 1.2, 1.4):
 //   - Gate all recording/profile/history/metrics UI behind <NotionConnect> so
 //     data recording is unavailable until a Notion workspace is connected
-//     (Req 1.1). NotionConnect drives the OAuth code exchange (reading `?code`
-//     from the redirect URL on mount) and only renders its children once the
-//     store reports `connected` (Req 1.2); on failure it stays disconnected and
-//     shows an error (Req 1.4).
-//   - Once connected, ensure the current year's Notion schema exists
-//     (best-effort) and provide lightweight tab navigation between the
-//     Calculator, QuickRecord, History, Metrics, and Profile screens.
-//
-// Connection and cached profile state are shared via the app store, so the
-// gated screens read what they need without prop drilling.
+//   - Tab navigation with framer-motion animations
+//   - Spanish UI translations
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import NotionConnect from './components/NotionConnect';
+import PageSelector from './components/PageSelector';
 import ProfileSettings from './components/ProfileSettings';
 import Calculator from './components/Calculator';
 import QuickRecord from './components/QuickRecord';
 import HistoryView from './components/HistoryView';
 import MetricsView from './components/MetricsView';
-import { NotionService, ROOT_PAGE_ID } from './services/notionService';
+import GlucoseChart from './components/GlucoseChart';
+import { NotionService } from './services/notionService';
 import { ensureYear } from './services/notionSchema';
 import { getReadings } from './services/readingsRepository';
 import { rangeFor } from './domain/history';
@@ -32,89 +27,100 @@ import { useAppStore } from './state/appStore';
 type Tab = 'calculator' | 'record' | 'history' | 'metrics' | 'profile';
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'calculator', label: 'Calculator' },
-  { id: 'record', label: 'Record' },
-  { id: 'history', label: 'History' },
-  { id: 'metrics', label: 'Metrics' },
-  { id: 'profile', label: 'Profile' },
+  { id: 'calculator', label: 'Calculadora' },
+  { id: 'record', label: 'Registrar' },
+  { id: 'history', label: 'Historial' },
+  { id: 'metrics', label: 'Métricas' },
+  { id: 'profile', label: 'Perfil' },
 ];
 
 const METRICS_RANGE_OPTIONS: { kind: RangeKind; label: string }[] = [
-  { kind: 'day', label: 'Day' },
-  { kind: 'week', label: 'Week' },
-  { kind: 'month', label: 'Month' },
-  { kind: 'year', label: 'Year' },
+  { kind: 'day', label: 'Día' },
+  { kind: 'week', label: 'Semana' },
+  { kind: 'month', label: 'Mes' },
+  { kind: 'year', label: 'Año' },
 ];
 
+const tabVariants = {
+  initial: { opacity: 0, y: 20, scale: 0.98 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  exit: { opacity: 0, y: -10, scale: 0.98 },
+};
+
 /**
- * The application shell shown ONLY once a Notion workspace is connected. It is
- * rendered as a child of <NotionConnect>, so it mounts after connection and can
- * safely rely on an access token being present in the store.
+ * The application shell shown ONLY once a Notion workspace is connected.
  */
 function ConnectedApp() {
-  const { accessToken } = useAppStore();
+  const { accessToken, rootPageId } = useAppStore();
   const [tab, setTab] = useState<Tab>('calculator');
 
-  // On first mount after connecting, ensure the current year's Year_Toggle and
-  // Readings_Database exist so subsequent recording/queries have a target.
-  // Best-effort: any failure is swallowed (the individual repository calls also
-  // ensure the schema on demand).
   useEffect(() => {
-    if (!accessToken) return;
+    if (!accessToken || !rootPageId) return;
     let cancelled = false;
     (async () => {
       try {
         const service = new NotionService(accessToken);
-        await ensureYear(service, ROOT_PAGE_ID, new Date().getFullYear());
+        await ensureYear(service, rootPageId, new Date().getFullYear());
       } catch {
-        // Best-effort schema bootstrap; ignore errors.
+        // Best-effort schema bootstrap
       }
-      // `cancelled` guards against setting state after unmount; nothing to set
-      // here today, but keeps the effect future-proof and lint-clean.
       if (cancelled) return;
     })();
     return () => {
       cancelled = true;
     };
-  }, [accessToken]);
+  }, [accessToken, rootPageId]);
 
   return (
     <div className="app-shell">
-      <nav role="tablist" aria-label="Sections" className="app-shell__tabs">
+      <nav role="tablist" aria-label="Secciones" className="app-shell__tabs">
         {TABS.map(({ id, label }) => (
-          <button
+          <motion.button
             key={id}
             type="button"
             role="tab"
             aria-selected={tab === id}
             onClick={() => setTab(id)}
+            whileTap={{ scale: 0.92 }}
           >
             {label}
-          </button>
+          </motion.button>
         ))}
       </nav>
 
       <div className="app-shell__content">
-        {tab === 'calculator' && <Calculator />}
-        {tab === 'record' && <QuickRecord />}
-        {tab === 'history' && <HistoryView />}
-        {tab === 'metrics' && <MetricsScreen />}
-        {tab === 'profile' && <ProfileSettings />}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={tab}
+            variants={tabVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={{ type: 'spring', stiffness: 300, damping: 30, mass: 0.8 }}
+          >
+            {tab === 'calculator' && <Calculator />}
+            {tab === 'record' && <QuickRecord />}
+            {tab === 'history' && <HistoryView />}
+            {tab === 'metrics' && <MetricsScreen />}
+            {tab === 'profile' && <ProfileSettings />}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
 }
 
 /**
- * Metrics screen wrapper: MetricsView is a pure presentation component that
- * expects the readings for the selected range as a prop, so this wrapper owns
- * the range selection and loads the matching readings from Notion.
+ * Metrics screen wrapper with toggle between Resumen and Gráfica.
  */
+type MetricsTab = 'resumen' | 'grafica';
+
 function MetricsScreen() {
-  const { accessToken } = useAppStore();
+  const { accessToken, rootPageId } = useAppStore();
   const [rangeKind, setRangeKind] = useState<RangeKind>('week');
   const [readings, setReadings] = useState<Reading[]>([]);
   const [loading, setLoading] = useState(true);
+  const [metricsTab, setMetricsTab] = useState<MetricsTab>('resumen');
 
   const range = useMemo(() => rangeFor(rangeKind, new Date()), [rangeKind]);
 
@@ -122,12 +128,12 @@ function MetricsScreen() {
     setLoading(true);
     try {
       const service = new NotionService(accessToken ?? '');
-      const result = await getReadings(service, ROOT_PAGE_ID, range);
+      const result = await getReadings(service, rootPageId ?? '', range);
       return result;
     } catch {
       return [] as Reading[];
     }
-  }, [accessToken, range]);
+  }, [accessToken, rootPageId, range]);
 
   useEffect(() => {
     let cancelled = false;
@@ -143,39 +149,100 @@ function MetricsScreen() {
 
   return (
     <section aria-label="Metrics screen">
-      <div role="group" aria-label="Select metrics range">
+      <div role="group" aria-label="Seleccionar rango de métricas">
         {METRICS_RANGE_OPTIONS.map(({ kind, label }) => (
-          <button
+          <motion.button
             key={kind}
             type="button"
             aria-pressed={rangeKind === kind}
             disabled={rangeKind === kind}
             onClick={() => setRangeKind(kind)}
+            whileTap={{ scale: 0.92 }}
           >
             {label}
-          </button>
+          </motion.button>
         ))}
       </div>
 
       {loading ? (
         <p role="status" aria-live="polite">
-          Loading
+          Cargando...
         </p>
       ) : (
-        <MetricsView readings={readings} />
+        <>
+          {readings.length > 0 && (
+            <div role="group" aria-label="Vista de métricas" className="metrics-view-toggle">
+              <motion.button
+                type="button"
+                aria-pressed={metricsTab === 'resumen'}
+                disabled={metricsTab === 'resumen'}
+                onClick={() => setMetricsTab('resumen')}
+                whileTap={{ scale: 0.92 }}
+              >
+                Resumen
+              </motion.button>
+              <motion.button
+                type="button"
+                aria-pressed={metricsTab === 'grafica'}
+                disabled={metricsTab === 'grafica'}
+                onClick={() => setMetricsTab('grafica')}
+                whileTap={{ scale: 0.92 }}
+              >
+                Gráfica
+              </motion.button>
+            </div>
+          )}
+
+          <AnimatePresence mode="wait">
+            {metricsTab === 'resumen' ? (
+              <motion.div
+                key="resumen"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              >
+                <MetricsView readings={readings} />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="grafica"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              >
+                <GlucoseChart readings={readings} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
       )}
     </section>
   );
 }
 
+/**
+ * Rendered once connected: if no data root page has been chosen yet, show the
+ * page selector; otherwise show the full application.
+ */
+function RootGate() {
+  const { rootPageId } = useAppStore();
+  return rootPageId ? <ConnectedApp /> : <PageSelector />;
+}
+
 export default function App() {
   return (
     <main>
-      <h1>Diabetes Insulin Tracker</h1>
-      {/* Gate all recording/profile/history/metrics UI behind the Notion
-          connection action (Req 1.1). Children render only once connected. */}
+      <motion.h1
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+      >
+        Diabetes Insulin Tracker
+      </motion.h1>
       <NotionConnect>
-        <ConnectedApp />
+        <RootGate />
       </NotionConnect>
     </main>
   );

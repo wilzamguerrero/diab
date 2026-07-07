@@ -1,0 +1,777 @@
+/* Diabetes Insulin Tracker — Premium dark health-tech theme.
+   Dark navy background with vibrant colored cards and bold typography. */
+
+:root {
+  --bg: #1a1f36;
+  --bg-secondary: #232847;
+  --surface: #2a2f4f;
+  --surface-2: #323762;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.15);
+  --text: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --text-dark: #1a1f36;
+
+  /* Vibrant card colors */
+  --lime: #c8ff00;
+  --lime-soft: #e8ff80;
+  --mint: #b8f0e0;
+  --mint-soft: #d4fff0;
+  --pink: #ffd6ee;
+  --pink-soft: #ffe8f5;
+  --sky: #80c8ff;
+  --sky-soft: #b8e0ff;
+  --lavender: #d4c8ff;
+
+  /* Functional colors */
+  --danger: #ff6b6b;
+  --danger-soft: rgba(255, 107, 107, 0.15);
+  --success: #4ade80;
+  --success-soft: rgba(74, 222, 128, 0.15);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.12);
+
+  --radius: 20px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+  --radius-sm: 12px;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 6px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.2);
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ── App shell / layout ─────────────────────────────────────────────── */
+
+main {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 16px 100px;
+}
+
+main > h1 {
+  font-size: 1.8rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  margin: 0 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text);
+}
+
+main > h1::before {
+  content: '💉';
+  font-size: 1.4rem;
+}
+
+h2 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+}
+
+/* ── Card panels ────────────────────────────────────────────────────── */
+
+.notion-connect,
+.page-selector {
+  background: var(--mint);
+  color: var(--text-dark);
+  border: none;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 28px 24px;
+}
+
+.app-shell {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+section[aria-labelledby='quick-record-heading'] {
+  background: var(--pink);
+  color: var(--text-dark);
+  border: none;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 28px 24px;
+}
+
+.calculator {
+  background: var(--lime);
+  color: var(--text-dark);
+  border: none;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 28px 24px;
+}
+
+section[aria-label='Historial de lecturas'] {
+  background: var(--sky-soft);
+  color: var(--text-dark);
+  border: none;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 28px 24px;
+}
+
+section[aria-label='Metrics screen'],
+section[aria-label='Métricas'] {
+  background: var(--lavender);
+  color: var(--text-dark);
+  border: none;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 28px 24px;
+}
+
+form[aria-label='Configuración del perfil del paciente'] {
+  background: var(--mint-soft);
+  color: var(--text-dark);
+  border: none;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 28px 24px;
+}
+
+.food-table {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-top: 16px;
+}
+
+p {
+  margin: 8px 0;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────── */
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  background: var(--text-dark);
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  font-size: 0.9rem;
+  transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+button:hover:not(:disabled) {
+  transform: scale(1.03);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* Tab / group selector buttons */
+[role='group'] button,
+[role='tablist'] button,
+.page-selector__list button {
+  background: rgba(26, 31, 54, 0.08);
+  color: var(--text-dark);
+  border: 2px solid transparent;
+  box-shadow: none;
+  padding: 10px 18px;
+  font-weight: 600;
+}
+
+[role='group'] button:hover:not(:disabled),
+[role='tablist'] button:hover:not(:disabled),
+.page-selector__list button:hover:not(:disabled) {
+  background: rgba(26, 31, 54, 0.14);
+  transform: scale(1.02);
+  box-shadow: none;
+}
+
+/* Active/pressed selector state */
+[role='group'] button:disabled,
+[role='group'] button[aria-pressed='true'],
+[role='tab'][aria-selected='true'] {
+  background: var(--text-dark);
+  color: #fff;
+  opacity: 1;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Tabs (bottom nav style) ────────────────────────────────────────── */
+
+.app-shell__tabs,
+[role='tablist'] {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin-bottom: 24px;
+  padding: 8px;
+  background: var(--surface);
+  border-radius: var(--radius-pill);
+  overflow-x: auto;
+  box-shadow: var(--shadow);
+}
+
+.app-shell__tabs button,
+[role='tablist'] button {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.app-shell__tabs [aria-selected='true'],
+[role='tablist'] [aria-selected='true'] {
+  background: var(--lime) !important;
+  color: var(--text-dark) !important;
+  box-shadow: 0 2px 8px rgba(200, 255, 0, 0.3);
+}
+
+.app-shell__content {
+  display: block;
+}
+
+/* ── Forms & inputs ─────────────────────────────────────────────────── */
+
+label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: rgba(26, 31, 54, 0.6);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+form div,
+.calculator__inputs > div {
+  margin-bottom: 16px;
+}
+
+input[type='text'],
+input[type='search'],
+input[type='number'],
+input[type='datetime-local'],
+input:not([type]) {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid rgba(26, 31, 54, 0.1);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-dark);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(4px);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--text-dark);
+  box-shadow: 0 0 0 4px rgba(26, 31, 54, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Radio / checkbox */
+fieldset {
+  border: 2px solid rgba(26, 31, 54, 0.1);
+  border-radius: var(--radius-sm);
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+fieldset legend {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: rgba(26, 31, 54, 0.6);
+  padding: 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+fieldset label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 20px 0 0;
+  color: var(--text-dark);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+input[type='radio'],
+input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--text-dark);
+  margin: 0;
+}
+
+form > button[type='submit'],
+.calculator button {
+  margin-top: 8px;
+}
+
+/* ── Status / alert messages ────────────────────────────────────────── */
+
+[role='alert'] {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  margin-top: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+[role='status'] {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-top: 12px;
+}
+
+/* Override status messages inside colored cards */
+.notion-connect [role='status'],
+.page-selector [role='status'],
+section[aria-labelledby='quick-record-heading'] [role='status'],
+.calculator [role='status'],
+section[aria-label='Historial de lecturas'] [role='status'],
+section[aria-label='Metrics screen'] [role='status'],
+form[aria-label='Configuración del perfil del paciente'] [role='status'] {
+  color: rgba(26, 31, 54, 0.5);
+}
+
+.profile-settings__status,
+[data-testid='quick-record-success'],
+[data-testid='dose-confirmed'] {
+  background: var(--success-soft);
+  color: var(--success);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-weight: 600;
+}
+
+/* Medical disclaimer */
+.calculator__disclaimer,
+[role='note'] {
+  background: rgba(26, 31, 54, 0.06);
+  border: 1px solid rgba(26, 31, 54, 0.12);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 0.82rem;
+  color: rgba(26, 31, 54, 0.7);
+  font-weight: 500;
+}
+
+/* ── Lists ──────────────────────────────────────────────────────────── */
+
+ul {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.page-selector__list li button {
+  width: 100%;
+  text-align: left;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: var(--radius-sm);
+}
+
+.food-table__list {
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.food-table__item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.food-table__item-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--text);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.food-table__item-carbs {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.food-table__item-quantity {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0;
+}
+
+.food-table__item-quantity span {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.food-table__item-quantity input {
+  width: 90px;
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.food-table__total {
+  margin-top: 14px;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.food-table__total strong,
+.calculator__carbs strong {
+  color: var(--lime);
+}
+
+/* On lime background override carbs to dark */
+.calculator .calculator__carbs strong {
+  color: var(--text-dark);
+  font-size: 1.1rem;
+}
+
+.food-table__search label span,
+.food-table__search label {
+  color: var(--text-muted);
+}
+
+/* History rows */
+section[aria-label='Historial de lecturas'] li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 16px;
+  padding: 14px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+section[aria-label='Historial de lecturas'] li span:first-child {
+  font-weight: 800;
+  font-size: 1.2rem;
+  color: var(--text-dark);
+}
+
+section[aria-label='Historial de lecturas'] time {
+  color: rgba(26, 31, 54, 0.5);
+  font-size: 0.82rem;
+  margin-left: auto;
+}
+
+/* ── Metrics (definition lists) ─────────────────────────────────────── */
+
+dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin: 16px 0 0;
+}
+
+dl > div {
+  background: rgba(255, 255, 255, 0.5);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 16px;
+}
+
+dt {
+  font-size: 0.72rem;
+  color: rgba(26, 31, 54, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+dd {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: var(--text-dark);
+  letter-spacing: -0.02em;
+}
+
+/* ── Calculator result breakdown ────────────────────────────────────── */
+
+[data-testid='dose-result'] {
+  margin-top: 20px;
+  padding: 20px;
+  border: none;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+}
+
+.calculator__dose {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+[data-testid='suggested-dose'] {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--text-dark);
+  letter-spacing: -0.03em;
+}
+
+.calculator__suggestion-label {
+  font-size: 0.82rem;
+  color: rgba(26, 31, 54, 0.5);
+  font-weight: 500;
+}
+
+.page-selector__search,
+.food-table__search {
+  margin-top: 12px;
+}
+
+/* Search page input inside selector (on mint bg) */
+.page-selector input[type='search'] {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* ── Notion connect specific ────────────────────────────────────────── */
+
+.notion-connect h2 {
+  color: var(--text-dark);
+}
+
+.notion-connect p {
+  color: rgba(26, 31, 54, 0.7);
+}
+
+.notion-connect button {
+  background: var(--text-dark);
+  color: var(--lime);
+  font-weight: 800;
+  padding: 14px 28px;
+  font-size: 1rem;
+}
+
+.notion-connect__error {
+  background: rgba(255, 107, 107, 0.1) !important;
+  border-color: rgba(255, 107, 107, 0.3) !important;
+}
+
+/* ── Range selectors inside colored cards ───────────────────────────── */
+
+section[aria-label='Historial de lecturas'] [role='group'],
+section[aria-label='Metrics screen'] [role='group'],
+section[aria-label='Métricas'] [role='group'] {
+  background: rgba(26, 31, 54, 0.06);
+  border-radius: var(--radius-pill);
+  padding: 4px;
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  box-shadow: none;
+}
+
+section[aria-label='Historial de lecturas'] [role='group'] button,
+section[aria-label='Metrics screen'] [role='group'] button,
+section[aria-label='Métricas'] [role='group'] button {
+  padding: 8px 14px;
+  font-size: 0.78rem;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: rgba(26, 31, 54, 0.6);
+  box-shadow: none;
+}
+
+section[aria-label='Historial de lecturas'] [role='group'] button:disabled,
+section[aria-label='Metrics screen'] [role='group'] button:disabled,
+section[aria-label='Métricas'] [role='group'] button:disabled {
+  background: var(--text-dark);
+  color: #fff;
+  opacity: 1;
+}
+
+/* ── Scrollbar styling ──────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ── Metrics summary (total count & in-range bar) ───────────────────── */
+
+.metrics-summary {
+  margin-bottom: 16px;
+}
+
+.metrics-summary__total {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.metrics-summary__total-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: rgba(26, 31, 54, 0.6);
+}
+
+.metrics-summary__total-value {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--text-dark);
+  letter-spacing: -0.02em;
+}
+
+.metrics-summary__range {
+  margin-bottom: 8px;
+}
+
+.metrics-summary__range-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(26, 31, 54, 0.7);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.metrics-summary__range-label strong {
+  color: var(--text-dark);
+  font-weight: 800;
+}
+
+.metrics-summary__progress-track {
+  width: 100%;
+  height: 10px;
+  background: rgba(26, 31, 54, 0.1);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.metrics-summary__progress-bar {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  min-width: 2px;
+}
+
+/* ── Metrics view toggle ────────────────────────────────────────────── */
+
+.metrics-view-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(26, 31, 54, 0.06);
+  border-radius: var(--radius-pill);
+  margin-bottom: 16px;
+}
+
+.metrics-view-toggle button {
+  padding: 8px 16px;
+  font-size: 0.78rem;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: rgba(26, 31, 54, 0.6);
+  box-shadow: none;
+}
+
+.metrics-view-toggle button:disabled {
+  background: var(--text-dark);
+  color: #fff;
+  opacity: 1;
+}
+
+/* ── Glucose Chart ──────────────────────────────────────────────────── */
+
+.glucose-chart {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 12px;
+  margin-top: 8px;
+}
+
+.glucose-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 180px;
+}

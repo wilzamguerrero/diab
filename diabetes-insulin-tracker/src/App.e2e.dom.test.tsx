@@ -256,7 +256,7 @@ vi.mock('./services/notionService', () => ({
 
 // Imports below resolve AFTER the mock is hoisted into place.
 import App from './App';
-import { setConnection, resetStore, getSnapshot } from './state/appStore';
+import { setConnection, setRootPage, resetStore, getSnapshot } from './state/appStore';
 import { clearYearCache } from './services/notionSchema';
 
 beforeEach(() => {
@@ -277,19 +277,21 @@ describe('App end-to-end wired flow (mocked NotionService)', () => {
     // Before connecting, the app shows the Notion connect gate and none of the
     // gated tabs are reachable.
     expect(
-      screen.getByRole('heading', { name: /connect notion/i }),
+      screen.getByRole('heading', { name: /conectar notion/i }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /profile/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /perfil/i })).not.toBeInTheDocument();
 
-    // Simulate a successful connection by driving the shared store directly
-    // (deterministic — no browser redirect / URL ?code needed).
+    // Simulate a successful connection AND page selection by driving the shared
+    // store directly (deterministic — no browser redirect / URL ?code or page
+    // search needed). The mocked NotionService backs its store at 'root-page'.
     act(() => {
       setConnection('test-token');
+      setRootPage(fake.ROOT_PAGE_ID);
     });
 
     // The gate is replaced by the tabbed application shell.
-    expect(await screen.findByRole('tab', { name: /profile/i })).toBeInTheDocument();
-    for (const label of ['Calculator', 'Record', 'History', 'Metrics', 'Profile']) {
+    expect(await screen.findByRole('tab', { name: /perfil/i })).toBeInTheDocument();
+    for (const label of ['Calculadora', 'Registrar', 'Historial', 'Métricas', 'Perfil']) {
       expect(screen.getByRole('tab', { name: label })).toBeInTheDocument();
     }
 
@@ -300,16 +302,17 @@ describe('App end-to-end wired flow (mocked NotionService)', () => {
     });
 
     // ── 2. Save profile (Req 2.1) ─────────────────────────────────────
-    await user.click(screen.getByRole('tab', { name: /profile/i }));
+    await user.click(screen.getByRole('tab', { name: /perfil/i }));
 
-    await user.type(screen.getByLabelText(/insulin-to-carb ratio/i), '10');
-    await user.type(screen.getByLabelText(/insulin sensitivity factor/i), '50');
-    await user.type(screen.getByLabelText(/target glucose/i), '120');
-    await user.click(screen.getByRole('button', { name: /save profile/i }));
+    const icInput = await screen.findByLabelText(/ratio insulina-carbohidratos/i);
+    await user.type(icInput, '10');
+    await user.type(screen.getByLabelText(/factor de sensibilidad/i), '50');
+    await user.type(screen.getByLabelText(/glucosa objetivo/i), '120');
+    await user.click(screen.getByRole('button', { name: /guardar perfil/i }));
 
     // A success status appears and the profile write was recorded by the
     // mocked service (persisted as JSON in the profile toggle's code block).
-    expect(await screen.findByRole('status')).toHaveTextContent(/profile saved/i);
+    expect(await screen.findByRole('status')).toHaveTextContent(/perfil guardado/i);
     expect(fake.state.calls.updateCodeBlock).toBeGreaterThanOrEqual(1);
 
     // Components share state via the store: the cached profile now reflects the
@@ -317,25 +320,26 @@ describe('App end-to-end wired flow (mocked NotionService)', () => {
     expect(getSnapshot().profile).toEqual({ icRatio: 10, isf: 50, targetGlucose: 120 });
 
     // ── 3. Record a reading (Req 5.2) ─────────────────────────────────
-    await user.click(screen.getByRole('tab', { name: /record/i }));
+    await user.click(screen.getByRole('tab', { name: /registrar/i }));
 
-    await user.type(screen.getByLabelText(/glucose \(mg\/dL\)/i), '140');
-    await user.click(screen.getByRole('radio', { name: /post-meal/i }));
-    await user.click(screen.getByRole('button', { name: /save reading/i }));
+    const glucoseInput = await screen.findByLabelText(/glucosa \(mg\/dL\)/i);
+    await user.type(glucoseInput, '140');
+    await user.click(screen.getByRole('radio', { name: /post-comida/i }));
+    await user.click(screen.getByRole('button', { name: /guardar lectura/i }));
 
     // Success is reported and the mocked persistence captured a database row.
     expect(await screen.findByTestId('quick-record-success')).toHaveTextContent(
-      /reading saved/i,
+      /lectura guardada/i,
     );
     expect(fake.state.calls.createDatabaseRow).toBeGreaterThanOrEqual(1);
 
     // ── 4a. History shows the recorded reading (Req 6.1) ──────────────
-    await user.click(screen.getByRole('tab', { name: /history/i }));
+    await user.click(screen.getByRole('tab', { name: /historial/i }));
 
     // Default range is "day"; the reading recorded "now" falls in it and is
     // rendered with its glucose value, meal tag, and timestamp.
     expect(await screen.findByText(/140 mg\/dL/)).toBeInTheDocument();
-    expect(screen.getByText(/post-meal/i)).toBeInTheDocument();
+    expect(screen.getByText(/post-comida/i)).toBeInTheDocument();
     const timeEl = container.querySelector('time');
     expect(timeEl).not.toBeNull();
     expect(timeEl?.getAttribute('dateTime')).toBeTruthy();
@@ -344,11 +348,11 @@ describe('App end-to-end wired flow (mocked NotionService)', () => {
     expect(fake.state.calls.queryDatabaseAll).toBeGreaterThanOrEqual(1);
 
     // ── 4b. Metrics aggregate the recorded reading (Req 7.1) ──────────
-    await user.click(screen.getByRole('tab', { name: /metrics/i }));
+    await user.click(screen.getByRole('tab', { name: /métricas/i }));
 
     // MetricsScreen loads the week's readings then renders the patient metrics;
     // with a single 140 mg/dL reading the average is 140.
-    expect(await screen.findByText(/average glucose/i)).toBeInTheDocument();
+    expect(await screen.findByText(/glucosa promedio/i)).toBeInTheDocument();
     // The patient metrics table is present and the average value (140 mg/dL for
     // a single 140 reading) is rendered.
     expect(screen.getByLabelText(/patient metrics/i)).toBeInTheDocument();

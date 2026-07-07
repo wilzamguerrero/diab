@@ -1,41 +1,22 @@
 // QuickRecord — rapid blood glucose reading entry.
-//
-// Captures a Current_Glucose value, a required Meal_Tag (pre/post), and a
-// timestamp (defaulting to "now" but overridable). On submit the reading is
-// validated with `validateReading`; invalid input surfaces the validation
-// message and nothing is persisted. On valid submit the reading is persisted
-// via the readings repository (through an injectable `persist` function). If
-// persistence throws, the patient is told the reading was NOT saved and the
-// entered input is preserved so they can retry.
-//
+// Spanish UI with motion animations.
 // Requirements: 5.1, 5.2, 5.4, 5.5, 5.6
-// See design.md (components/QuickRecord.tsx) responsibilities 5.1–5.6.
 
 import { useState } from 'react';
+import { motion } from 'motion/react';
 import type { Reading } from '../types';
 import { validateReading } from '../domain/validation';
 import { addReading } from '../services/readingsRepository';
-import { NotionService, ROOT_PAGE_ID } from '../services/notionService';
+import { NotionService } from '../services/notionService';
 import { useAppStore } from '../state/appStore';
 
-/** Meal tag selection state — `''` represents "no selection yet". */
 type MealTagChoice = '' | 'pre' | 'post';
 
 export interface QuickRecordProps {
-  /**
-   * Persist a validated reading. Injectable so tests can supply success/failure
-   * without touching Notion. Defaults to a wrapper that builds a NotionService
-   * from the store's access token and calls `addReading`.
-   */
   persist?: (r: Reading) => Promise<void>;
-  /** Optional callback invoked with the reading after a successful persist. */
   onRecorded?: (r: Reading) => void;
 }
 
-/**
- * Convert a `datetime-local` input value (local wall-clock, no timezone) into
- * an ISO 8601 timestamp. Falls back to "now" when the value is empty/invalid.
- */
 function toIsoTimestamp(localValue: string): string {
   if (!localValue) return new Date().toISOString();
   const parsed = new Date(localValue);
@@ -43,10 +24,6 @@ function toIsoTimestamp(localValue: string): string {
   return parsed.toISOString();
 }
 
-/**
- * Produce a `datetime-local`-compatible string (`YYYY-MM-DDTHH:mm`) for the
- * given date in local time, used to seed the timestamp field with "now".
- */
 function toLocalInputValue(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   const yyyy = date.getFullYear();
@@ -58,23 +35,26 @@ function toLocalInputValue(date: Date): string {
 }
 
 export default function QuickRecord({ persist, onRecorded }: QuickRecordProps) {
-  const { accessToken } = useAppStore();
+  const { accessToken, rootPageId } = useAppStore();
 
   const [glucose, setGlucose] = useState('');
   const [mealTag, setMealTag] = useState<MealTagChoice>('');
   const [timestamp, setTimestamp] = useState(() => toLocalInputValue(new Date()));
+  const [notes, setNotes] = useState('');
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  /** Default persister: build a NotionService from the token and add the reading. */
   async function defaultPersist(r: Reading): Promise<void> {
     if (!accessToken) {
-      throw new Error('Not connected to Notion.');
+      throw new Error('No conectado a Notion.');
+    }
+    if (!rootPageId) {
+      throw new Error('No se ha seleccionado una página de Notion.');
     }
     const service = new NotionService(accessToken);
-    await addReading(service, ROOT_PAGE_ID, r);
+    await addReading(service, rootPageId, r);
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -82,21 +62,19 @@ export default function QuickRecord({ persist, onRecorded }: QuickRecordProps) {
     setError(null);
     setSuccess(null);
 
-    // Parse glucose as a number; an empty/blank field becomes NaN which the
-    // validator rejects with the out-of-range message.
     const glucoseValue = glucose.trim() === '' ? NaN : Number(glucose);
 
     const result = validateReading({ glucose: glucoseValue, mealTag });
     if (!result.valid) {
-      setError(result.message ?? 'Invalid reading.');
+      setError(result.message ?? 'Lectura inválida.');
       return;
     }
 
-    // mealTag is guaranteed 'pre' | 'post' here since validation passed.
     const reading: Reading = {
       glucose: glucoseValue,
       mealTag: mealTag as Reading['mealTag'],
       timestamp: toIsoTimestamp(timestamp),
+      notes: notes.trim() || undefined,
     };
 
     const doPersist = persist ?? defaultPersist;
@@ -104,28 +82,31 @@ export default function QuickRecord({ persist, onRecorded }: QuickRecordProps) {
     setSubmitting(true);
     try {
       await doPersist(reading);
-      setSuccess('Reading saved.');
+      setSuccess('Lectura guardada.');
       onRecorded?.(reading);
-      // Reset entry fields for the next reading on success.
       setGlucose('');
       setMealTag('');
+      setNotes('');
       setTimestamp(toLocalInputValue(new Date()));
     } catch {
-      // Requirement 5.6: notify the patient the reading was NOT saved and keep
-      // the entered input so they can retry.
-      setError('The reading was not saved. Please try again.');
+      setError('La lectura no se guardó. Intenta de nuevo.');
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <section aria-labelledby="quick-record-heading">
-      <h2 id="quick-record-heading">Record a reading</h2>
+    <motion.section
+      aria-labelledby="quick-record-heading"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 22 }}
+    >
+      <h2 id="quick-record-heading">Registrar una lectura</h2>
 
       <form onSubmit={handleSubmit} noValidate>
         <div>
-          <label htmlFor="quick-record-glucose">Glucose (mg/dL)</label>
+          <label htmlFor="quick-record-glucose">Glucosa (mg/dL)</label>
           <input
             id="quick-record-glucose"
             name="glucose"
@@ -137,7 +118,7 @@ export default function QuickRecord({ persist, onRecorded }: QuickRecordProps) {
         </div>
 
         <fieldset>
-          <legend>Meal tag</legend>
+          <legend>Etiqueta de comida</legend>
           <label>
             <input
               type="radio"
@@ -146,7 +127,7 @@ export default function QuickRecord({ persist, onRecorded }: QuickRecordProps) {
               checked={mealTag === 'pre'}
               onChange={() => setMealTag('pre')}
             />
-            Pre-meal
+            Pre-comida
           </label>
           <label>
             <input
@@ -156,12 +137,12 @@ export default function QuickRecord({ persist, onRecorded }: QuickRecordProps) {
               checked={mealTag === 'post'}
               onChange={() => setMealTag('post')}
             />
-            Post-meal
+            Post-comida
           </label>
         </fieldset>
 
         <div>
-          <label htmlFor="quick-record-timestamp">Time</label>
+          <label htmlFor="quick-record-timestamp">Hora</label>
           <input
             id="quick-record-timestamp"
             name="timestamp"
@@ -171,21 +152,49 @@ export default function QuickRecord({ persist, onRecorded }: QuickRecordProps) {
           />
         </div>
 
-        <button type="submit" disabled={submitting}>
-          {submitting ? 'Saving…' : 'Save reading'}
-        </button>
+        <div>
+          <label htmlFor="quick-record-notes">Observaciones (opcional)</label>
+          <textarea
+            id="quick-record-notes"
+            name="notes"
+            rows={2}
+            placeholder="Alimentación, actividad, cómo te sientes..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            style={{ width: '100%', resize: 'vertical', padding: '14px 16px', borderRadius: '12px', border: '2px solid rgba(26,31,54,0.1)', font: 'inherit', fontWeight: 600, background: 'rgba(255,255,255,0.7)' }}
+          />
+        </div>
+
+        <motion.button
+          type="submit"
+          disabled={submitting}
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          {submitting ? 'Guardando…' : 'Guardar lectura'}
+        </motion.button>
       </form>
 
       {error && (
-        <p role="alert" data-testid="quick-record-error">
+        <motion.p
+          role="alert"
+          data-testid="quick-record-error"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
           {error}
-        </p>
+        </motion.p>
       )}
       {success && (
-        <p role="status" data-testid="quick-record-success">
+        <motion.p
+          role="status"
+          data-testid="quick-record-success"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
           {success}
-        </p>
+        </motion.p>
       )}
-    </section>
+    </motion.section>
   );
 }

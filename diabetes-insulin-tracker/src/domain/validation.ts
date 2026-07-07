@@ -41,14 +41,14 @@ export function validateProfile(p: {
   if (typeof icRatio !== 'number' || !Number.isFinite(icRatio) || icRatio <= 0) {
     return {
       valid: false,
-      message: 'Insulin-to-carb ratio must be a number greater than 0.',
+      message: 'El ratio insulina-carbohidratos debe ser un número mayor que 0.',
     };
   }
 
   if (typeof isf !== 'number' || !Number.isFinite(isf) || isf <= 0) {
     return {
       valid: false,
-      message: 'Insulin sensitivity factor must be a number greater than 0.',
+      message: 'El factor de sensibilidad a insulina debe ser un número mayor que 0.',
     };
   }
 
@@ -60,7 +60,7 @@ export function validateProfile(p: {
   ) {
     return {
       valid: false,
-      message: `Target glucose must be between ${TARGET_GLUCOSE_MIN} and ${TARGET_GLUCOSE_MAX} mg/dL.`,
+      message: `La glucosa objetivo debe estar entre ${TARGET_GLUCOSE_MIN} y ${TARGET_GLUCOSE_MAX} mg/dL.`,
     };
   }
 
@@ -93,14 +93,14 @@ export function validateReading(r: {
   ) {
     return {
       valid: false,
-      message: `Glucose must be between ${READING_GLUCOSE_MIN} and ${READING_GLUCOSE_MAX} mg/dL.`,
+      message: `La glucosa debe estar entre ${READING_GLUCOSE_MIN} y ${READING_GLUCOSE_MAX} mg/dL.`,
     };
   }
 
   if (!VALID_MEAL_TAGS.includes(mealTag)) {
     return {
       valid: false,
-      message: 'Meal tag must be either "pre" or "post".',
+      message: 'La etiqueta de comida debe ser "pre" o "post".',
     };
   }
 

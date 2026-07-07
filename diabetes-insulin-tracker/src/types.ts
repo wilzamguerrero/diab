@@ -51,6 +51,8 @@ export interface Reading {
   mealTag: 'pre' | 'post';
   /** ISO 8601 timestamp. */
   timestamp: string;
+  /** Optional notes/observations about the reading (diet, activity, etc.). */
+  notes?: string;
 }
 
 /**

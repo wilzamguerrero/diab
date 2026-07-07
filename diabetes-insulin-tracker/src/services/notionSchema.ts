@@ -1,5 +1,4 @@
 import { NotionService } from './notionService';
-import { NotionBlock, NotionToggleBlock } from '../types';
 
 // In-module cache mapping "year-db:{rootPageId}:{year}" → databaseId.
 // Ensures repeated ensureYear calls are idempotent within a session and
@@ -13,12 +12,6 @@ function cacheKey(rootPageId: string, year: number): string {
 /** Reset the module cache. Primarily useful for tests. */
 export function clearYearCache(): void {
   yearDbCache.clear();
-}
-
-/** Extract the plain-text title of a toggle block. */
-function toggleTitle(block: NotionBlock): string {
-  const richText = (block as NotionToggleBlock).toggle?.rich_text || [];
-  return richText.map((t) => t.plain_text || '').join('').trim();
 }
 
 /**
@@ -38,20 +31,30 @@ function readingsDatabaseProperties(): object {
       },
     },
     Timestamp: { date: {} },
+    Notes: { rich_text: {} },
   };
 }
 
 /**
- * Guarantee that the Year_Toggle and its Readings_Database exist for the given
- * year under the root page, returning the database id. Idempotent: repeated
- * calls neither create duplicate toggles nor duplicate databases.
+ * Guarantee that the Year's Readings_Database exists for the given year under
+ * the root page, returning the database id. Idempotent: repeated calls neither
+ * create duplicate databases nor duplicate year toggles.
+ *
+ * Notion does NOT allow creating a database as a child of a toggle block via
+ * POST /databases. So we create the database directly as a child of the root
+ * PAGE using parent: { type: 'page_id', page_id: rootPageId }.
+ *
+ * To organize visually we still look for/create a toggle labeled with the year
+ * but the database is placed at page level (Notion inline databases can live
+ * under a page). We scan the page children for a 'child_database' block whose
+ * title starts with "Readings {year}".
  *
  * Algorithm:
- *   1. Cache lookup by "year-db:{rootPageId}:{year}".
- *   2. Scan root page children for a Year_Toggle titled String(year).
- *   3. If found, scan its children for a child_database block → databaseId.
- *   4. Otherwise create the toggle and a database beneath it.
- *   5. Cache and return the databaseId.
+ *   1. Cache lookup.
+ *   2. Scan root page children for a child_database titled "Readings {year}".
+ *   3. If found → use its id.
+ *   4. Otherwise → create the database via POST /databases with parent page_id.
+ *   5. Cache and return.
  *
  * Validates: Requirements 5.3
  */
@@ -65,37 +68,23 @@ export async function ensureYear(
   if (cached) return cached;
 
   const yearLabel = String(year);
+  const dbTitle = `Readings ${yearLabel}`;
 
-  // Scan root page children for an existing Year_Toggle titled String(year).
-  // getBlockChildren paginates internally, so a single call yields all children.
+  // Scan root page children for an existing database titled "Readings {year}".
   const rootChildren = await service.getBlockChildren(rootPageId);
-  const yearToggle = rootChildren.find(
-    (block) => block.type === 'toggle' && toggleTitle(block) === yearLabel,
+  const existingDb = rootChildren.find(
+    (block) => block.type === 'child_database' && (block as any).child_database?.title === dbTitle,
   );
 
-  let databaseId: string | undefined;
+  let databaseId: string;
 
-  if (yearToggle) {
-    // Look for an existing child database under the toggle.
-    const toggleChildren = await service.getBlockChildren(yearToggle.id);
-    const existingDb = toggleChildren.find((block) => block.type === 'child_database');
-    if (existingDb) {
-      databaseId = existingDb.id;
-    } else {
-      // Toggle exists but has no database yet; create one under it.
-      const created = await service.createDatabase(
-        yearToggle.id,
-        `Readings ${yearLabel}`,
-        readingsDatabaseProperties(),
-      );
-      databaseId = created.id;
-    }
+  if (existingDb) {
+    databaseId = existingDb.id;
   } else {
-    // No toggle for this year: create the toggle, then the database under it.
-    const toggle = await service.createFolder(rootPageId, yearLabel);
-    const created = await service.createDatabase(
-      toggle.id,
-      `Readings ${yearLabel}`,
+    // Create the database directly under the root page.
+    const created = await service.createDatabaseUnderPage(
+      rootPageId,
+      dbTitle,
       readingsDatabaseProperties(),
     );
     databaseId = created.id;

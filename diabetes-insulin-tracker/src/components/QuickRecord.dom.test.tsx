@@ -26,9 +26,9 @@ describe('QuickRecord validation and persist-failure notice', () => {
 
     render(<QuickRecord persist={persist} />);
 
-    await user.type(screen.getByLabelText(/glucose \(mg\/dL\)/i), '999');
-    await user.click(screen.getByRole('radio', { name: /pre-meal/i }));
-    await user.click(screen.getByRole('button', { name: /save reading/i }));
+    await user.type(screen.getByLabelText(/glucosa \(mg\/dL\)/i), '999');
+    await user.click(screen.getByRole('radio', { name: /pre-comida/i }));
+    await user.click(screen.getByRole('button', { name: /guardar lectura/i }));
 
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent(/glucose must be between 20 and 600/i);
@@ -41,9 +41,9 @@ describe('QuickRecord validation and persist-failure notice', () => {
 
     render(<QuickRecord persist={persist} />);
 
-    await user.type(screen.getByLabelText(/glucose \(mg\/dL\)/i), '120');
+    await user.type(screen.getByLabelText(/glucosa \(mg\/dL\)/i), '120');
     // Deliberately leave the meal tag radios unselected.
-    await user.click(screen.getByRole('button', { name: /save reading/i }));
+    await user.click(screen.getByRole('button', { name: /guardar lectura/i }));
 
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent(/meal tag must be either "pre" or "post"/i);
@@ -58,13 +58,13 @@ describe('QuickRecord validation and persist-failure notice', () => {
 
     render(<QuickRecord persist={persist} />);
 
-    const glucoseInput = screen.getByLabelText(/glucose \(mg\/dL\)/i) as HTMLInputElement;
+    const glucoseInput = screen.getByLabelText(/glucosa \(mg\/dL\)/i) as HTMLInputElement;
     await user.type(glucoseInput, '120');
-    await user.click(screen.getByRole('radio', { name: /post-meal/i }));
-    await user.click(screen.getByRole('button', { name: /save reading/i }));
+    await user.click(screen.getByRole('radio', { name: /post-comida/i }));
+    await user.click(screen.getByRole('button', { name: /guardar lectura/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent(/the reading was not saved/i);
+      expect(screen.getByRole('alert')).toHaveTextContent(/no se guardó/i);
     });
     expect(persist).toHaveBeenCalledTimes(1);
     // Input is preserved so the patient can retry.
@@ -77,12 +77,12 @@ describe('QuickRecord validation and persist-failure notice', () => {
 
     render(<QuickRecord persist={persist} />);
 
-    await user.type(screen.getByLabelText(/glucose \(mg\/dL\)/i), '120');
-    await user.click(screen.getByRole('radio', { name: /pre-meal/i }));
-    await user.click(screen.getByRole('button', { name: /save reading/i }));
+    await user.type(screen.getByLabelText(/glucosa \(mg\/dL\)/i), '120');
+    await user.click(screen.getByRole('radio', { name: /pre-comida/i }));
+    await user.click(screen.getByRole('button', { name: /guardar lectura/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('status')).toHaveTextContent(/reading saved/i);
+      expect(screen.getByRole('status')).toHaveTextContent(/lectura guardada/i);
     });
     expect(persist).toHaveBeenCalledTimes(1);
     const reading = persist.mock.calls[0][0];
