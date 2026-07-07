@@ -20,6 +20,13 @@
 import { useSyncExternalStore } from 'react';
 import type { PatientProfile } from '../types';
 
+/** Configuration for glucose measurement reminders. */
+export interface ReminderConfig {
+  enabled: boolean;
+  intervalHours: number;
+  lastNotified?: string;
+}
+
 /** Immutable snapshot of the application state. */
 export interface AppState {
   /** Whether a Notion workspace is currently connected. */
@@ -36,6 +43,8 @@ export interface AppState {
   profile: PatientProfile | null;
   /** Whether the first-use Medical_Disclaimer has been acknowledged. */
   disclaimerAcknowledged: boolean;
+  /** Glucose measurement reminder configuration. */
+  reminders: ReminderConfig;
 }
 
 type Listener = () => void;
@@ -43,6 +52,7 @@ type Listener = () => void;
 const TOKEN_STORAGE_KEY = 'dit:accessToken';
 const DISCLAIMER_STORAGE_KEY = 'dit:disclaimerAcknowledged';
 const ROOT_PAGE_STORAGE_KEY = 'dit:rootPageId';
+const REMINDERS_STORAGE_KEY = 'dit:reminders';
 
 /**
  * Safely obtain the localStorage instance, or null when it is unavailable
@@ -127,6 +137,33 @@ function persistRootPage(rootPageId: string | null): void {
   }
 }
 
+function readPersistedReminders(): ReminderConfig {
+  const storage = getStorage();
+  if (!storage) return { enabled: false, intervalHours: 4 };
+  try {
+    const raw = storage.getItem(REMINDERS_STORAGE_KEY);
+    if (!raw) return { enabled: false, intervalHours: 4 };
+    const parsed = JSON.parse(raw);
+    return {
+      enabled: Boolean(parsed.enabled),
+      intervalHours: typeof parsed.intervalHours === 'number' ? parsed.intervalHours : 4,
+      lastNotified: parsed.lastNotified ?? undefined,
+    };
+  } catch {
+    return { enabled: false, intervalHours: 4 };
+  }
+}
+
+function persistReminders(config: ReminderConfig): void {
+  const storage = getStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(REMINDERS_STORAGE_KEY, JSON.stringify(config));
+  } catch {
+    // Best-effort persistence; ignore write failures.
+  }
+}
+
 function createInitialState(): AppState {
   const accessToken = readPersistedToken();
   return {
@@ -135,6 +172,7 @@ function createInitialState(): AppState {
     rootPageId: readPersistedRootPage(),
     profile: null,
     disclaimerAcknowledged: readPersistedDisclaimer(),
+    reminders: readPersistedReminders(),
   };
 }
 
@@ -215,6 +253,14 @@ export function acknowledgeDisclaimer(): void {
 }
 
 /**
+ * Update the reminder configuration. Persisted to localStorage.
+ */
+export function setReminders(config: ReminderConfig): void {
+  persistReminders(config);
+  setState({ ...state, reminders: config });
+}
+
+/**
  * Reset the entire store to a fresh initial state, clearing persisted values.
  * Intended for tests and full sign-out flows.
  */
@@ -222,12 +268,14 @@ export function resetStore(): void {
   persistToken(null);
   persistDisclaimer(false);
   persistRootPage(null);
+  persistReminders({ enabled: false, intervalHours: 4 });
   setState({
     connected: false,
     accessToken: null,
     rootPageId: null,
     profile: null,
     disclaimerAcknowledged: false,
+    reminders: { enabled: false, intervalHours: 4 },
   });
 }
 

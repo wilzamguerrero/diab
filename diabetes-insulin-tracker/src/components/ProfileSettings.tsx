@@ -4,12 +4,14 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
+import { Bell, BellOff, Clock } from 'lucide-react';
 import type { PatientProfile } from '../types';
 import { validateProfile } from '../domain/validation';
 import { saveProfile, loadProfile } from '../services/profileRepository';
 import { NotionService } from '../services/notionService';
-import { getSnapshot, setProfile, useAppStore } from '../state/appStore';
+import { getSnapshot, setProfile, setReminders, useAppStore } from '../state/appStore';
 import { useI18n } from '../services/i18n';
+import { requestNotificationPermission } from '../services/reminderService';
 import type { Lang } from '../services/i18n';
 
 export type SaveProfileFn = (profile: PatientProfile) => Promise<void>;
@@ -218,7 +220,101 @@ export default function ProfileSettings({
           ))}
         </div>
       </section>
+
+      {/* Reminders */}
+      <ReminderSettings />
     </motion.div>
+  );
+}
+
+function ReminderSettings() {
+  const { reminders } = useAppStore();
+  const [permissionDenied, setPermissionDenied] = useState(false);
+
+  async function handleToggle() {
+    if (!reminders.enabled) {
+      const granted = await requestNotificationPermission();
+      if (!granted) {
+        setPermissionDenied(true);
+        return;
+      }
+      setPermissionDenied(false);
+      setReminders({ ...reminders, enabled: true });
+    } else {
+      setReminders({ ...reminders, enabled: false });
+    }
+  }
+
+  function handleIntervalChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const value = Number(e.target.value);
+    if (value > 0) {
+      setReminders({ ...reminders, intervalHours: value });
+    }
+  }
+
+  return (
+    <section aria-label="Recordatorios" style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '2px solid rgba(26,31,54,0.08)' }}>
+      <h3 style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {reminders.enabled ? <Bell size={18} /> : <BellOff size={18} />}
+        Recordatorios
+      </h3>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+        <motion.button
+          type="button"
+          onClick={handleToggle}
+          whileTap={{ scale: 0.92 }}
+          style={{
+            background: reminders.enabled ? '#4ade80' : 'rgba(26,31,54,0.08)',
+            color: reminders.enabled ? '#1a1f36' : 'rgba(26,31,54,0.6)',
+            padding: '10px 18px',
+            borderRadius: '999px',
+            fontWeight: 700,
+            fontSize: '0.85rem',
+          }}
+        >
+          {reminders.enabled ? 'Activado' : 'Desactivado'}
+        </motion.button>
+      </div>
+
+      {permissionDenied && (
+        <motion.p
+          role="alert"
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{ fontSize: '0.82rem', color: '#ff6b6b', margin: '8px 0' }}
+        >
+          Permiso de notificaciones denegado. Habilítalo en la configuración del navegador.
+        </motion.p>
+      )}
+
+      {reminders.enabled && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          style={{ marginTop: '12px' }}
+        >
+          <label htmlFor="reminder-interval" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Clock size={14} />
+            Intervalo (horas)
+          </label>
+          <input
+            id="reminder-interval"
+            type="number"
+            min="1"
+            max="24"
+            step="1"
+            value={reminders.intervalHours}
+            onChange={handleIntervalChange}
+            style={{ width: '100px' }}
+          />
+          <p style={{ fontSize: '0.78rem', color: 'rgba(26,31,54,0.5)', marginTop: '8px' }}>
+            Recibirás un recordatorio cada {reminders.intervalHours} {reminders.intervalHours === 1 ? 'hora' : 'horas'} para medir tu glucosa.
+          </p>
+        </motion.div>
+      )}
+    </section>
   );
 }
 

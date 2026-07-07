@@ -6,6 +6,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Menu, X, Calculator, PenLine, BarChart3, TrendingUp, Settings } from 'lucide-react';
 
 /** Tab type must match the one defined in App.tsx */
 type Tab = 'calculator' | 'record' | 'history' | 'metrics' | 'profile';
@@ -17,35 +18,67 @@ export interface FloatingNavProps {
 
 interface NavItem {
   id: Tab;
-  icon: string;
+  icon: React.ReactNode;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'calculator', icon: '🧮' },
-  { id: 'record', icon: '✏️' },
-  { id: 'history', icon: '📊' },
-  { id: 'metrics', icon: '📈' },
-  { id: 'profile', icon: '⚙️' },
+  { id: 'calculator', icon: <Calculator size={22} /> },
+  { id: 'record', icon: <PenLine size={22} /> },
+  { id: 'history', icon: <BarChart3 size={22} /> },
+  { id: 'metrics', icon: <TrendingUp size={22} /> },
+  { id: 'profile', icon: <Settings size={22} /> },
 ];
 
-const RADIUS = 85;
+const SPACING = 60; // distance between children (vertical line)
+const RADIUS = 85; // radius for circular layout (middle zone)
 const SPREAD_ANGLE = 0.6;
 const FAB_SIZE = 60;
 const CHILD_SIZE = 48;
 
 /**
- * Determine the base angle for radial expansion, pointing AWAY from the
- * nearest edges (toward the center of the viewport).
+ * Determine layout mode based on FAB vertical position:
+ * - bottom third → children go UP in a vertical line
+ * - top third → children go DOWN in a vertical line
+ * - middle → children fan out in a circle around the FAB
  */
-function getExpandDirection(
-  x: number,
-  y: number,
+type LayoutMode = 'up' | 'down' | 'around';
+
+function getLayoutMode(fabCenterY: number, viewportH: number): LayoutMode {
+  const third = viewportH / 3;
+  if (fabCenterY > viewportH - third) return 'up';
+  if (fabCenterY < third) return 'down';
+  return 'around';
+}
+
+/**
+ * Get the x,y offset for a child button based on layout mode.
+ */
+function getChildPosition(
+  index: number,
+  count: number,
+  mode: LayoutMode,
+  fabCenterX: number,
+  fabCenterY: number,
   viewportW: number,
   viewportH: number,
-): number {
+): { x: number; y: number } {
+  if (mode === 'up') {
+    // Vertical line going up
+    return { x: 0, y: -(index + 1) * SPACING };
+  }
+  if (mode === 'down') {
+    // Vertical line going down
+    return { x: 0, y: (index + 1) * SPACING };
+  }
+  // 'around' — circular layout pointing toward center
   const centerX = viewportW / 2;
   const centerY = viewportH / 2;
-  return Math.atan2(centerY - y, centerX - x);
+  const baseAngle = Math.atan2(centerY - fabCenterY, centerX - fabCenterX);
+  const angle = baseAngle + (index - (count - 1) / 2) * SPREAD_ANGLE;
+  return {
+    x: Math.cos(angle) * RADIUS,
+    y: Math.sin(angle) * RADIUS,
+  };
 }
 
 export default function FloatingNav({ currentTab, onTabChange }: FloatingNavProps) {
@@ -67,7 +100,7 @@ export default function FloatingNav({ currentTab, onTabChange }: FloatingNavProp
   const fabCenterX = viewport.w - 24 - FAB_SIZE / 2 + position.x;
   const fabCenterY = viewport.h - 24 - FAB_SIZE / 2 + position.y;
 
-  const baseAngle = getExpandDirection(fabCenterX, fabCenterY, viewport.w, viewport.h);
+  const layoutMode = getLayoutMode(fabCenterY, viewport.h);
 
   const handleToggle = useCallback(() => {
     setIsOpen((prev) => !prev);
@@ -134,14 +167,20 @@ export default function FloatingNav({ currentTab, onTabChange }: FloatingNavProp
           touchAction: 'none',
         }}
       >
-        {/* Child buttons (radial) */}
+        {/* Child buttons */}
         <AnimatePresence>
           {isOpen &&
             NAV_ITEMS.map((item, index) => {
               const count = NAV_ITEMS.length;
-              const angle = baseAngle + (index - (count - 1) / 2) * SPREAD_ANGLE;
-              const childX = Math.cos(angle) * RADIUS;
-              const childY = Math.sin(angle) * RADIUS;
+              const { x: childX, y: childY } = getChildPosition(
+                index,
+                count,
+                layoutMode,
+                fabCenterX,
+                fabCenterY,
+                viewport.w,
+                viewport.h,
+              );
               const isActive = currentTab === item.id;
 
               return (
@@ -176,8 +215,8 @@ export default function FloatingNav({ currentTab, onTabChange }: FloatingNavProp
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 22,
                     cursor: 'pointer',
+                    color: isActive ? '#1a1f36' : '#1a1f36',
                     boxShadow: isActive
                       ? '0 0 0 3px #c8ff00, 0 4px 16px rgba(200,255,0,0.4)'
                       : '0 4px 16px rgba(0,0,0,0.25)',
@@ -217,7 +256,7 @@ export default function FloatingNav({ currentTab, onTabChange }: FloatingNavProp
             padding: 0,
           }}
         >
-          {isOpen ? '✕' : '💉'}
+          {isOpen ? <X size={26} /> : <Menu size={26} />}
         </motion.button>
       </motion.div>
     </>

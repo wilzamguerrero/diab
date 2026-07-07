@@ -22,8 +22,9 @@ import { ensureYear } from './services/notionSchema';
 import { getReadings } from './services/readingsRepository';
 import { rangeFor } from './domain/history';
 import type { RangeKind, Reading } from './types';
-import { useAppStore } from './state/appStore';
+import { useAppStore, setReminders } from './state/appStore';
 import { useI18n } from './services/i18n';
+import { shouldRemind, showReminder } from './services/reminderService';
 
 /** The selectable screens within the connected application. */
 type Tab = 'calculator' | 'record' | 'history' | 'metrics' | 'profile';
@@ -45,7 +46,7 @@ const tabVariants = {
  * The application shell shown ONLY once a Notion workspace is connected.
  */
 function ConnectedApp() {
-  const { accessToken, rootPageId } = useAppStore();
+  const { accessToken, rootPageId, reminders } = useAppStore();
   const [tab, setTab] = useState<Tab>('calculator');
 
   useEffect(() => {
@@ -64,6 +65,20 @@ function ConnectedApp() {
       cancelled = true;
     };
   }, [accessToken, rootPageId]);
+
+  // Reminder check — fires every 60s when reminders are enabled
+  useEffect(() => {
+    if (!reminders.enabled) return;
+    function check() {
+      if (shouldRemind(reminders.lastNotified, reminders.intervalHours)) {
+        showReminder();
+        setReminders({ ...reminders, lastNotified: new Date().toISOString() });
+      }
+    }
+    check();
+    const interval = setInterval(check, 60_000);
+    return () => clearInterval(interval);
+  }, [reminders]);
 
   return (
     <div className="app-shell">
