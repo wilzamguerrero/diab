@@ -81,6 +81,21 @@ export class NotionService {
     });
   }
 
+  /**
+   * Create a new child page under a parent page.
+   * Returns the new page id and title.
+   */
+  async createChildPage(parentPageId: string, title: string): Promise<{ id: string; title: string }> {
+    const cleanParent = NotionService.formatUUID(parentPageId);
+    const data = await this.notionFetch('/pages', 'POST', {
+      parent: { type: 'page_id', page_id: cleanParent },
+      properties: {
+        title: { title: [{ text: { content: title } }] },
+      },
+    });
+    return { id: data.id, title };
+  }
+
   // Exchange OAuth authorization code for access token
   static async exchangeOAuthCode(code: string, redirectUri: string): Promise<{
     access_token: string;

@@ -4,12 +4,12 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { Bell, BellOff, Clock } from 'lucide-react';
+import { Bell, BellOff, Clock, LogOut, RefreshCw } from 'lucide-react';
 import type { PatientProfile } from '../types';
 import { validateProfile } from '../domain/validation';
 import { saveProfile, loadProfile } from '../services/profileRepository';
 import { NotionService } from '../services/notionService';
-import { getSnapshot, setProfile, setReminders, useAppStore } from '../state/appStore';
+import { getSnapshot, setProfile, setReminders, setRootPage, disconnect, useAppStore } from '../state/appStore';
 import { useI18n } from '../services/i18n';
 import { requestNotificationPermission } from '../services/reminderService';
 import type { Lang } from '../services/i18n';
@@ -223,6 +223,9 @@ export default function ProfileSettings({
 
       {/* Reminders */}
       <ReminderSettings />
+
+      {/* Session / page management */}
+      <SessionActions />
     </motion.div>
   );
 }
@@ -322,4 +325,67 @@ function parseNumber(value: string): number {
   const trimmed = value.trim();
   if (trimmed === '') return Number.NaN;
   return Number(trimmed);
+}
+
+function SessionActions() {
+
+  function handleChangePage() {
+    // Clear rootPageId to go back to page selector without logging out
+    setRootPage(null);
+  }
+
+  function handleLogout() {
+    // Full disconnect: clear token, root page, profile
+    disconnect();
+  }
+
+  return (
+    <section aria-label="Sesión" style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '2px solid rgba(26,31,54,0.08)' }}>
+      <h3 style={{ marginBottom: '0.75rem' }}>Sesión</h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <motion.button
+          type="button"
+          onClick={handleChangePage}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.95 }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: 'rgba(26,31,54,0.06)',
+            color: '#1a1f36',
+            border: '1px solid rgba(26,31,54,0.12)',
+            padding: '12px 18px',
+            borderRadius: '12px',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+            justifyContent: 'center',
+          }}
+        >
+          <RefreshCw size={16} /> Cambiar página de Notion
+        </motion.button>
+        <motion.button
+          type="button"
+          onClick={handleLogout}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.95 }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: 'rgba(220,38,38,0.08)',
+            color: '#dc2626',
+            border: '1px solid rgba(220,38,38,0.2)',
+            padding: '12px 18px',
+            borderRadius: '12px',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+            justifyContent: 'center',
+          }}
+        >
+          <LogOut size={16} /> Cerrar sesión
+        </motion.button>
+      </div>
+    </section>
+  );
 }
