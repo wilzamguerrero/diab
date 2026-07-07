@@ -16,6 +16,7 @@ import QuickRecord from './components/QuickRecord';
 import HistoryView from './components/HistoryView';
 import MetricsView from './components/MetricsView';
 import GlucoseChart from './components/GlucoseChart';
+import FloatingNav from './components/FloatingNav';
 import { NotionService } from './services/notionService';
 import { ensureYear } from './services/notionSchema';
 import { getReadings } from './services/readingsRepository';
@@ -26,15 +27,6 @@ import { useI18n } from './services/i18n';
 
 /** The selectable screens within the connected application. */
 type Tab = 'calculator' | 'record' | 'history' | 'metrics' | 'profile';
-
-const TAB_IDS: Tab[] = ['calculator', 'record', 'history', 'metrics', 'profile'];
-const TAB_KEYS: Record<Tab, string> = {
-  calculator: 'tab.calculator',
-  record: 'tab.record',
-  history: 'tab.history',
-  metrics: 'tab.metrics',
-  profile: 'tab.profile',
-};
 
 const RANGE_KEYS: { kind: RangeKind; key: string }[] = [
   { kind: 'day', key: 'history.day' },
@@ -54,7 +46,6 @@ const tabVariants = {
  */
 function ConnectedApp() {
   const { accessToken, rootPageId } = useAppStore();
-  const { t } = useI18n();
   const [tab, setTab] = useState<Tab>('calculator');
 
   useEffect(() => {
@@ -76,22 +67,7 @@ function ConnectedApp() {
 
   return (
     <div className="app-shell">
-      <nav role="tablist" aria-label={t('app.sections')} className="app-shell__tabs">
-        {TAB_IDS.map((id) => (
-          <motion.button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={tab === id}
-            onClick={() => setTab(id)}
-            whileTap={{ scale: 0.92 }}
-          >
-            {t(TAB_KEYS[id])}
-          </motion.button>
-        ))}
-      </nav>
-
-      <div className="app-shell__content">
+      <div className="app-shell__content app-shell__content--full">
         <AnimatePresence mode="wait">
           <motion.div
             key={tab}
@@ -109,6 +85,8 @@ function ConnectedApp() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      <FloatingNav currentTab={tab} onTabChange={setTab} />
     </div>
   );
 }
