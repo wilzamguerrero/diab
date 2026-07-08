@@ -9,7 +9,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import NotionConnect from './components/NotionConnect';
-import PageSelector from './components/PageSelector';
 import ProfileSettings from './components/ProfileSettings';
 import Calculator from './components/Calculator';
 import QuickRecord from './components/QuickRecord';
@@ -22,7 +21,7 @@ import { ensureYear } from './services/notionSchema';
 import { getReadings } from './services/readingsRepository';
 import { rangeFor } from './domain/history';
 import type { RangeKind, Reading } from './types';
-import { useAppStore, setReminders } from './state/appStore';
+import { useAppStore, setReminders, setRootPage } from './state/appStore';
 import { useI18n } from './services/i18n';
 import { shouldRemind, showReminder } from './services/reminderService';
 
@@ -220,12 +219,41 @@ function MetricsScreen() {
 }
 
 /**
- * Rendered once connected: if no data root page has been chosen yet, show the
- * page selector; otherwise show the full application.
+ * Rendered once connected: auto-selects the first available Notion page
+ * as the data root, then shows the full application.
  */
 function RootGate() {
-  const { rootPageId } = useAppStore();
-  return rootPageId ? <ConnectedApp /> : <PageSelector />;
+  const { rootPageId, accessToken } = useAppStore();
+  const [autoSelecting, setAutoSelecting] = useState(true);
+
+  useEffect(() => {
+    if (rootPageId) {
+      setAutoSelecting(false);
+      return;
+    }
+    if (!accessToken) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const service = new NotionService(accessToken);
+        const pages = await service.searchPages();
+        if (!cancelled && pages.length > 0) {
+          setRootPage(pages[0].id);
+        }
+      } catch {
+        // Best-effort — if it fails, keep trying on next render
+      } finally {
+        if (!cancelled) setAutoSelecting(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [rootPageId, accessToken]);
+
+  if (autoSelecting) {
+    return <p role="status" aria-live="polite" style={{ textAlign: 'center', padding: '2rem' }}>Conectando con Notion...</p>;
+  }
+
+  return rootPageId ? <ConnectedApp /> : <p style={{ textAlign: 'center', padding: '2rem' }}>No se encontraron páginas en Notion.</p>;
 }
 
 export default function App() {

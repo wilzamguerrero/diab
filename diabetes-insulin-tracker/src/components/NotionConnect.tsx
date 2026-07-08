@@ -62,6 +62,15 @@ function generateState(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
+/** Remove OAuth query params (code, state) from the URL without reloading. */
+function cleanOAuthParams(): void {
+  if (typeof window === 'undefined' || !window.history) return;
+  const url = new URL(window.location.href);
+  url.searchParams.delete('code');
+  url.searchParams.delete('state');
+  window.history.replaceState({}, '', url.pathname + url.search);
+}
+
 type Phase = 'idle' | 'exchanging' | 'error';
 
 export default function NotionConnect({
@@ -90,13 +99,18 @@ export default function NotionConnect({
         if (result.error || !result.access_token) {
           setError(result.error || t('notion.error'));
           setPhase('error');
+          // Clean URL so stale code isn't retried
+          cleanOAuthParams();
           return;
         }
         setConnection(result.access_token);
         setPhase('idle');
+        // Remove code/state from URL to prevent re-exchange on reload
+        cleanOAuthParams();
       } catch {
         setError(t('notion.error'));
         setPhase('error');
+        cleanOAuthParams();
       }
     },
     [exchangeCode, resolvedRedirectUri, t],
@@ -135,6 +149,31 @@ export default function NotionConnect({
     return <>{children}</>;
   }
 
+  // While exchanging the OAuth code, show a minimal loader instead of the full card
+  if (phase === 'exchanging') {
+    return (
+      <motion.div
+        aria-label="Conectando con Notion"
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem' }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
+        <motion.div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            border: '4px solid rgba(200,255,0,0.3)',
+            borderTopColor: '#c8ff00',
+          }}
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
+        />
+        <p style={{ marginTop: '1rem', fontWeight: 600, opacity: 0.7 }}>Conectando con Notion...</p>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.section
       aria-label="Conexión de Notion"
@@ -160,11 +199,10 @@ export default function NotionConnect({
       <motion.button
         type="button"
         onClick={handleConnect}
-        disabled={phase === 'exchanging'}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
-        {phase === 'exchanging' ? t('notion.connecting') : t('notion.button')}
+        {t('notion.button')}
       </motion.button>
     </motion.section>
   );
