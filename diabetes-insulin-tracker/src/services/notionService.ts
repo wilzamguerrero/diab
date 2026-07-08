@@ -73,7 +73,13 @@ export class NotionService {
       filter: { property: 'object', value: 'page' },
       sort: { direction: 'descending', timestamp: 'last_edited_time' },
     });
-    return (data.results || []).map((page: any) => {
+    // Filter out database rows (pages whose parent is a database) — only keep
+    // top-level pages (parent is workspace or another page).
+    const topLevelPages = (data.results || []).filter((page: any) => {
+      const parentType = page.parent?.type;
+      return parentType !== 'database_id';
+    });
+    return topLevelPages.map((page: any) => {
       const titleProp = page.properties?.title?.title || page.properties?.Name?.title || [];
       const title = titleProp.map((t: any) => t.plain_text).join('') || 'Untitled';
       const icon = page.icon?.emoji || page.icon?.external?.url || null;

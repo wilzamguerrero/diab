@@ -33,7 +33,7 @@ export async function addReading(
   const databaseId = await ensureYear(service, rootPageId, year);
 
   await service.createDatabaseRow(databaseId, {
-    Name: { title: [{ text: { content: r.timestamp } }] },
+    Name: { title: [] },
     Glucose: { number: r.glucose },
     Meal_Tag: { select: { name: r.mealTag } },
     Timestamp: { date: { start: r.timestamp } },

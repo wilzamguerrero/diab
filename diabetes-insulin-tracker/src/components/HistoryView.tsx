@@ -34,14 +34,19 @@ function formatTimestamp(iso: string): string {
   if (Number.isNaN(date.getTime())) {
     return iso;
   }
-  return date.toLocaleString();
+  return date.toLocaleString(undefined, {
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }
 
 export function HistoryView({
   fetchReadings,
   rootPageId,
   anchor,
-  initialRange = 'day',
+  initialRange = 'week',
 }: HistoryViewProps) {
   const { accessToken, rootPageId: storeRootPageId } = useAppStore();
   const { t } = useI18n();
